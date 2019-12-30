@@ -8,6 +8,34 @@ car_lag = 1
 car_lead = 5
 estimation_period=250
 
+
+#------------
+# handling missing data
+#------------
+# fast mean imputation
+if(any(colSums(is.na(returns))>0)){
+  missing <- colnames(returns)[colSums(is.na(returns))>0]
+  warning(paste("Imputed data breturns mean of the following firm(s):",paste(missing, collapse=' ')))}
+returns <- zoo::na.aggregate(returns,FUN=mean,na.rm=T)
+# drop firms with NAs
+if(any(colSums(is.na(returns))>0)){
+  missing <- colnames(returns)[colSums(is.na(returns))>0]
+  warning(paste("Drop following firm(s) due to missing data:",paste(missing, collapse=' ')))}
+returns <- returns[,colSums(is.na(returns))==0]
+# mice
+if(any(colSums(is.na(returns))>0)){
+  missing <- colnames(returns)[colSums(is.na(returns))>0]
+  warning(paste("Imputed data using predictive mean matching of the following firm(s):",paste(missing, collapse=' ')))}
+returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
+returns <- zoo::zoo(returns)
+
+
+
+#----------------------------
+# mean adjusted
+#----------------------------
+
+
 # data preperation
 estimation_period <- window(returns,start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
 event_period <- window(returns,start=(event_date-car_lag),end=(event_date+car_lead))
@@ -33,41 +61,17 @@ y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_dat
 x1 <- window(regressor, start=(event_date-estimation_period-car_lag),end=(event_date+car_lead))
 x2 <- time(y) %in% seq(as.Date(event_date-car_lag), as.Date(event_date+car_lead), "days")
 
-
-#xx <- cbind(x0=1,x1=as.numeric(x1),x2=ifelse(x2==TRUE,1,0))
-#z <- lm.fit(xx, y[,c(1,3)])
-
-#------------
-# handling missing data
-#------------
-# fast mean imputation
-if(any(colSums(is.na(y))>0)){
-  missing <- colnames(y)[colSums(is.na(y))>0]
-  warning(paste("Imputed data by mean of the following firm(s):",paste(missing, collapse=' ')))}
-y <- zoo::na.aggregate(y,FUN=mean,na.rm=T)
-# drop firms with NAs
-if(any(colSums(is.na(y))>0)){
-  missing <- colnames(y)[colSums(is.na(y))>0]
-  warning(paste("Drop following firm(s) due to missing data:",paste(missing, collapse=' ')))}
-y <- y[,colSums(is.na(y))==0]
-# mice
-if(any(colSums(is.na(y))>0)){
-  missing <- colnames(y)[colSums(is.na(y))>0]
-  warning(paste("Imputed data using predictive mean matching of the following firm(s):",paste(missing, collapse=' ')))}
-y <- mice::complete(mice::mice(y,method="pmm",printFlag = FALSE))
-y <- zoo::zoo(y)
-
 #------------
 # regression
 #------------
-z <- lm(y~xx[,2]+xx[,3])
+z <- lm(y~x1+x2)
 
 #------------
-# generate output
+# output
 #------------
 out <- cbind(coef(z)[3,],
              confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
-colnames(out) <- c("ar","ci_lower","ci_upper")
+colnames(out) <- c("ar_coef","ci_lower","ci_upper")
 
 out <- data.frame(out)
 out$car <- out$ar * sum(ifelse(x2==TRUE,1,0))
@@ -76,11 +80,64 @@ row.names(out) <- NULL
 
 out <- out[c(5,1:4)]
 
+
+#----------------------------
+# market adjusted (out-of sample)
+#----------------------------
+
+#------------
+# data prep
+#------------
+y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
+x1 <- window(regressor, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
+
+y2 <- window(returns, start=(event_date-car_lag),end=(event_date+car_lead))
+x12 <- window(regressor, start=(event_date-car_lag),end=(event_date+car_lead))
+
+#------------
+# regression
+#------------
+z <- lm(y~x1)
+
+#------------
+# prediction
+#------------
+ar <- sapply(seq_along(x12),function(i){
+  y2[i,] - (m[1,] + m[2,]*x12[[i]])})
+ci <- sapply(seq_len(nrow(ar)),function(i){
+  se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
+  m <- mean(ar[i,])
+  c(m-se, m+se)
+})
+ci <- t(ci)
+
+#------------
+# output
+#------------
+out <- cbind(rowMeans(ar),ci)
+colnames(out) <- c("ar_mean","ci_lower","ci_upper")
+
+out <- data.frame(out)
+out$car <- rowSums(ar)
+out$firm <- rownames(out)
+row.names(out) <- NULL
+
+out <- out[c(5,1:4)]
+
+
+
+
+
+
+#############################################################
 #------------
 
 #------------
 
 
+
+#xx <- cbind(x0=1,x1=as.numeric(x1),x2=ifelse(x2==TRUE,1,0))
+#z <- lm.fit(xx, y[,c(1,3)])
 
 # mice imputation
 z <- lm.fit(xx, y[,c(1,3)])
