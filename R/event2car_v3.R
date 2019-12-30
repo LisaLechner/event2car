@@ -31,28 +31,51 @@ returns <- zoo::zoo(returns)
 
 
 
-#----------------------------
+########################################
 # mean adjusted
-#----------------------------
+########################################
+
+#------------
+# data prep
+#------------
+# estimation period data
+y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
+
+# event period data
+y2 <- window(returns, start=(event_date-car_lag),end=(event_date+car_lead))
+
+#------------
+# abnormal returns
+#------------
+ar <- sapply(seq_len(ncol(y)),function(i){
+  as.numeric(y2[,i]) - mean(as.numeric(y[,i]))})
+
+ci <- sapply(seq_len(ncol(ar)),function(i){
+  se <- qnorm(0.975)*sd(ar[,i])/sqrt(nrow(ar))
+  m <- mean(ar[,i])
+  c(m-se, m+se)
+})
+ci <- t(ci)
 
 
-# data preperation
-estimation_period <- window(returns,start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
-event_period <- window(returns,start=(event_date-car_lag),end=(event_date+car_lead))
-tradingdays <- colSums(!is.na(event_period))
-if(any(tradingdays<length(time(event_period)))){
-  missing <- names(which(tradingdays<length(time(event_period))))
-  warning(paste("Generated abnormal returns with missing event period data for the following firm(s):",paste(missing, collapse=' ')))}
+#------------
+# output
+#------------
+out <- cbind(colMeans(ar),ci)
+colnames(out) <- c("ar_mean","ci_lower","ci_upper")
+
+out <- data.frame(out)
+out$car <- colSums(ar)
+out$firm <- names(y)
+row.names(out) <- NULL
+
+out <- out[c(5,1:4)]
 
 
 
-# mean adjusted
-car <- tradingdays * (colMeans(event_period,na.rm = T) - colMeans(estimation_period,na.rm = T)) #why times tradingdays?
-
-
-#----------------------------
+########################################
 # market adjusted (within sample)
-#----------------------------
+########################################
 
 #------------
 # data prep
@@ -62,7 +85,7 @@ x1 <- window(regressor, start=(event_date-estimation_period-car_lag),end=(event_
 x2 <- time(y) %in% seq(as.Date(event_date-car_lag), as.Date(event_date+car_lead), "days")
 
 #------------
-# regression
+# regression inkl. event period
 #------------
 z <- lm(y~x1+x2)
 
@@ -81,16 +104,18 @@ row.names(out) <- NULL
 out <- out[c(5,1:4)]
 
 
-#----------------------------
+########################################
 # market adjusted (out-of sample)
-#----------------------------
+########################################
 
 #------------
 # data prep
 #------------
+# estimation period data
 y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
 x1 <- window(regressor, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
 
+# event period data
 y2 <- window(returns, start=(event_date-car_lag),end=(event_date+car_lead))
 x12 <- window(regressor, start=(event_date-car_lag),end=(event_date+car_lead))
 
@@ -100,7 +125,7 @@ x12 <- window(regressor, start=(event_date-car_lag),end=(event_date+car_lead))
 z <- lm(y~x1)
 
 #------------
-# prediction
+# prediction or abnormal returns
 #------------
 ar <- sapply(seq_along(x12),function(i){
   y2[i,] - (m[1,] + m[2,]*x12[[i]])})
