@@ -26,7 +26,9 @@ car <- tradingdays * (colMeans(event_period,na.rm = T) - colMeans(estimation_per
 # market adjusted (within sample)
 #----------------------------
 
+#------------
 # data prep
+#------------
 y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_date+car_lead))
 x1 <- window(regressor, start=(event_date-estimation_period-car_lag),end=(event_date+car_lead))
 x2 <- time(y) %in% seq(as.Date(event_date-car_lag), as.Date(event_date+car_lead), "days")
@@ -35,15 +37,44 @@ x2 <- time(y) %in% seq(as.Date(event_date-car_lag), as.Date(event_date+car_lead)
 #xx <- cbind(x0=1,x1=as.numeric(x1),x2=ifelse(x2==TRUE,1,0))
 #z <- lm.fit(xx, y[,c(1,3)])
 
+#------------
+# handling missing data
+#------------
 # fast mean imputation
-
+if(any(colSums(is.na(y))>0)){
+  missing <- colnames(y)[colSums(is.na(y))>0]
+  warning(paste("Imputed data by mean of the following firm(s):",paste(missing, collapse=' ')))}
 y <- zoo::na.aggregate(y,FUN=mean,na.rm=T)
+# drop firms with NAs
+if(any(colSums(is.na(y))>0)){
+  missing <- colnames(y)[colSums(is.na(y))>0]
+  warning(paste("Drop following firm(s) due to missing data:",paste(missing, collapse=' ')))}
+y <- y[,colSums(is.na(y))==0]
+# mice
+if(any(colSums(is.na(y))>0)){
+  missing <- colnames(y)[colSums(is.na(y))>0]
+  warning(paste("Imputed data using predictive mean matching of the following firm(s):",paste(missing, collapse=' ')))}
+y <- mice::complete(mice::mice(y,method="pmm",printFlag = FALSE))
+y <- zoo::zoo(y)
+
+#------------
+# regression
+#------------
 z <- lm(y~xx[,2]+xx[,3])
 
+#------------
+# generate output
+#------------
 out <- cbind(names(y),
              coef(z)[3,],
              confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
 colnames(out) <- c("firm","car","ci_lower","ci_upper")
+row.names(out) <- NULL
+out <- data.frame(out)
+
+#------------
+
+#------------
 
 
 
