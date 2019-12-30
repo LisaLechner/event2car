@@ -1,0 +1,15 @@
+Package: event2car
+Title: Calculates cumulative abnormal return(s) of event(s) for firm(s)
+Version: 1.0
+Authors@R: person("Lisa", "Lechner", email = "lisa.lechner@uibk.ac.at", role = c("aut", "cre"))
+Description: The package allows for the calculation of cumulative abnormal return(s) of one or several event(s) for one or multiple firm(s). The package covers three models for the calculation of the cumulative abnomral returns: the mean-adjusted model, the out-of-sample market-adjusted model, and the within-sample market adjusted model. The function applies the following steps to securities' rates of returns: A) calculate abnormal returns for the estimation period, B) predict abnormal returns for event period(s), C) aggregate the predicted abnormal returns to cumulative abnormal return(s) for event dates. 
+Depends: R (>= 3.4.0)
+Suggests: knitr, 
+          stats
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+VignetteBuilder: knitr
+RoxygenNote: 6.1.1
+Imports: plyr (>= 1.8.4), 
+         zoo (>= 1.8-0)
