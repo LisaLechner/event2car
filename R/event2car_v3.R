@@ -65,12 +65,16 @@ z <- lm(y~xx[,2]+xx[,3])
 #------------
 # generate output
 #------------
-out <- cbind(names(y),
-             coef(z)[3,],
+out <- cbind(coef(z)[3,],
              confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
-colnames(out) <- c("firm","car","ci_lower","ci_upper")
-row.names(out) <- NULL
+colnames(out) <- c("ar","ci_lower","ci_upper")
+
 out <- data.frame(out)
+out$car <- out$ar * sum(ifelse(x2==TRUE,1,0))
+out$firm <- rownames(out)
+row.names(out) <- NULL
+
+out <- out[c(5,1:4)]
 
 #------------
 
