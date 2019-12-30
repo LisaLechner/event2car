@@ -38,15 +38,20 @@ x2 <- time(y) %in% seq(as.Date(event_date-car_lag), as.Date(event_date+car_lead)
 # fast mean imputation
 
 y <- zoo::na.aggregate(y,FUN=mean,na.rm=T)
-
-
 z <- lm(y~xx[,2]+xx[,3])
 
-# mice imputation
+out <- cbind(names(y),
+             coef(z)[3,],
+             confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
+colnames(out) <- c("firm","car","ci_lower","ci_upper")
 
+
+
+# mice imputation
+z <- lm.fit(xx, y[,c(1,3)])
 # drop observations with missings
 
-z <- lm.fit(xx, y[,c(1,2)])
+z2 <- lm.fit(xx, y)
 
 
 coef(z)
