@@ -2,7 +2,7 @@
 #'
 #' Datset containing stock returns of 18 important US tech firms (See \href{https://finance.yahoo.com/u/yahoo-finance/watchlists/tech-stocks-that-move-the-market/}{Yahoo Finance})
 #' and the NASDAQ return.
-#' The dataset covers all trading days between 2015-11-03 and 2017-11-29 (e.g. 523).
+#' The dataset covers all trading days between 2015-11-03 and 2019-11-30 (e.g. 1045).
 #'
 #' @docType data
 #'
