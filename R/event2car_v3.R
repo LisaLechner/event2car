@@ -39,10 +39,7 @@ x2 <- time(y) %in% seq(as.Date(event_date-car_lag), as.Date(event_date+car_lead)
 
 y <- zoo::na.aggregate(y,FUN=mean,na.rm=T)
 
-m <- colnames(y)[colSums(is.na(y))>0]
-m_mean <- apply(as.data.frame(y[,m]),2,function(x) mean(x,na.rm=T))
 
-for(i in seq_along(m)){y[,m[i]] <- ifelse(is.na(y[,m[i]]),m_mean[[i]],y[,m[i]])}
 z <- lm(y~xx[,2]+xx[,3])
 
 # mice imputation
