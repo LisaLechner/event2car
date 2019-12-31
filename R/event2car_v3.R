@@ -45,17 +45,17 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
               # handling missing data
               #------------
 
-              if (impuation == "mean") {
+              if (imputation == "mean") {
                 # fast mean imputation
                 if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
-                    warning(paste("Imputed data breturns mean of the following firm(s):",
+                    warning(paste("Imputed data using mean returns mean of the following firm(s):",
                                   paste(missing, collapse=' ')))
                 }
                 returns <- zoo::na.aggregate(returns,FUN=mean,na.rm=T)
               }
 
-              if (impuation == "none") {
+              if (imputation == "none") {
                 # drop firms with NAs
                 if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
@@ -65,7 +65,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                 returns <- returns[,colSums(is.na(returns))==0]
               }
 
-              if (impuation == "pmm") {
+              if (imputation == "pmm") {
                 # mice
                 if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
@@ -195,5 +195,12 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                   out <- out[c(5,1:4)]
               }
 
-
+              return(out)
 }
+
+# test
+
+event2car(returns = tech_returns[,2:19],regressor = tech_returns[,1],event_date = "2018-12-01",
+          method = "mrkt_adj_within",imputation = "mean",
+          car_lag = 1,car_lead = 5,estimation_period = 150)
+
