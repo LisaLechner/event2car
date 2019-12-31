@@ -24,11 +24,11 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
 
   if (NROW(returns) < estimation_period+car_lag+car_lead) {
     stop("Length of returns is too short.
-                     Either use a longer returns object or shorten the estimation or event period.")
+                     Either use a longer returns object or shorten the estimation- or event period.")
   }
-  if (min(time(returns))>min(event_date)-estimation_period){
+  if (min(time(returns))>=min(event_date)-estimation_period-car_lag | max(time(returns))<=max(event_date)-car_lead){
     stop("Length of returns is too short.
-                     Either use a longer returns object or shorten the estimation or event period.")
+                     Either use a longer returns object or shorten the estimation- or event period.")
   }
 
   if (method %in% c("mrkt_adj_within","mrkt_adj_out")){
@@ -38,11 +38,11 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     }
     if (NROW(regressor) < estimation_period+car_lag+car_lead) {
       stop("Length of regressor is too short.
-                         Either use a longer returns object or shorten the estimation or event period.")
+                         Either use a longer returns object or shorten the estimation- or event period.")
     }
-    if (min(time(returns))>min(event_date)-estimation_period){
+    if (min(time(regressor))>=min(event_date)-estimation_period-car_lag | max(time(regressor))<=max(event_date)-car_lead){
       stop("Length of regressor is too short.
-                     Either use a longer regressor object or shorten the estimation or event period.")
+                     Either use a longer regressor object or shorten the estimation- or event period.")
     }
     if (any(!time(regressor) %in% time(regressor))) {
       warning("regressor and returns have different time ranges.")
@@ -84,7 +84,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     returns <- zoo::zoo(returns)
   }
 
-
+temp <- lapply(event_date,function(event){
   if (method == "mean_adj") {
     ########################################
     # mean adjusted
@@ -94,9 +94,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     # data prep
     #------------
     # estimation period data
-    y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
+    y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
     # event period data
-    y2 <- window(returns, start=(event_date-car_lag),end=(event_date+car_lead))
+    y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
 
     #------------
     # abnormal returns
@@ -133,9 +133,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     #------------
     # data prep
     #------------
-    y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_date+car_lead))
-    x1 <- window(regressor, start=(event_date-estimation_period-car_lag),end=(event_date+car_lead))
-    x2 <- time(y) %in% seq(as.Date(event_date-car_lag), as.Date(event_date+car_lead), "days")
+    y <- window(returns, start=(event-estimation_period-car_lag),end=(event+car_lead))
+    x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event+car_lead))
+    x2 <- time(y) %in% seq(as.Date(event-car_lag), as.Date(event+car_lead), "days")
 
     #------------
     # regression inkl. event period
@@ -166,11 +166,11 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     # data prep
     #------------
     # estimation period data
-    y <- window(returns, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
-    x1 <- window(regressor, start=(event_date-estimation_period-car_lag),end=(event_date-car_lag))
+    y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
+    x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event-car_lag))
     # event period data
-    y2 <- window(returns, start=(event_date-car_lag),end=(event_date+car_lead))
-    x12 <- window(regressor, start=(event_date-car_lag),end=(event_date+car_lead))
+    y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
+    x12 <- window(regressor, start=(event-car_lag),end=(event+car_lead))
 
     #------------
     # regression
@@ -202,13 +202,16 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
 
     out <- out[c(5,1:4)]
   }
-
   return(out)
+})
+names(temp) <- event_date
+return(temp)
 }
+
 
 # test
 
-event2car(returns = tech_returns[,2:19],regressor = tech_returns[,1],event_date = "2018-12-01",
+event2car(returns = tech_returns[,2:19],regressor = tech_returns[,1],event_date = c("2019-09-01","2016-11-20","2018-11-19","2018-12-16"),
           method = "mrkt_adj_within",imputation = "mean",
           car_lag = 1,car_lead = 5,estimation_period = 150)
 
