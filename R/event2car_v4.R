@@ -1,3 +1,66 @@
+#' event2car: Calculates \code{CAR} (cumulative abnormal returns) for firm(s) and event(s)
+#'
+#' The function calculates abnormal returns and confidence intervals
+#' during the event period(s) as well as
+#' cumulative abnormal returns of event(s).
+#'
+#' The package covers three models for the calculation of the cumulative abnormal returns:
+#' - Mean-adjusted model (\code{mean_adj})
+#' - Market-adjusted model using out-of-sample estimation (\emph{mrkt_adj_out})
+#' - Market-adjusted model using within-sample estimation (\emph{mrkt_adj_within})
+#' This is the logic suggested by multiple scholars. See references below.
+#'
+#' The generic function is dispatched for such classes as
+#'  \code{zoo}. (future versions of the package allow for classes of \code{data.frame}.)
+#'
+#' If \code{market_model} is \emph{mrkt_adj} or \code{sim}
+#' and \code{regressor} has the length greater than one, the first element of
+#' \code{regressor} will be applied for each security in \code{returns}.
+#'
+#' @param returns an object of \code{data.frame} or \code{zoo} containing rates of returns of securities.
+#' @param regressor an object of the same class as \code{returns} containing regressors.
+#'                  The argument can be omitted, if market model is \code{mean_adj}.
+#' @param event_dates an object of class \code{Date} containing one event date or multiple event dates
+#' @param estimation_period an object of class \code{intenger} stating the number of days
+#'  prior to the event over which the market model parameters are estimated. Default is 250 days.
+#'  Note that the event period itself is not included in the event period to prevent the event from influencing the normal performance model parameter estimates.
+#' @param car_lag an object of class \code{intenger} measuring the start of the event window. The default is 1 day prior to the event date.
+#' @param car_lead an object of class \code{intenger} measuring the end of the event window. The default is 5 days after the event date.
+#' @param market_model market_model a character indicating the market model among
+#' \code{mean_adj}, \code{mrkt_adj}, and \code{sim}.
+
+#' @return an object of class \code{data.frame} which contains cumulative abnormal returns, the average cumulative abnormal return
+#' (controls for varying event period durations if non-trading days are in the period), the number of tradingdays,
+#' significance levels of the market-return-coefficient, significance level of the event-dummy-coefficient, and model fit (rsquared) per securities per event date(s).
+#' Note that significance levels and rsquared are NA if market model is \code{mean_adj}.
+#'
+#' @references MacKinlay, A.C. \emph{Event Studies in Economics and Finance}.
+#' Journal of Economic Literature, 35(1):13-39, 1997.
+#' @references Brown S.J., Warner J.B. \emph{Using Daily Stock Returns, The Case
+#' of Event Studies}. Journal of Financial Economics, 14:3-31, 1985.
+#' @references Davies, R., Studnicka, Z. \emph{The heterogeneous impact of Brexit: Early indications from the FTSE}.
+#' European Economic Review, 110:1-17, 2018.
+#' @importFrom plyr ldply
+#' @importFrom zoo index merge.zoo coredata
+#' @importFrom stats na.omit time
+#'
+#' @keywords eventstudy stock finance
+#'
+#' @examples
+#' data('tech_returns')
+#' # prepare data
+#' trumpelection <- as.Date("2016-11-08")
+#' returns_firms=tech_returns[,2:19]
+#' return_indx = tech_returns[,1]
+#' # mean adjusted model
+#' event2car(returns=returns_firms,regressor=return_indx,
+#'           event_dates=trumpelection,market_model="mean_adj")
+#' # market adjusted model (out-of sample estimation)
+#' event2car(returns=returns_firms,regressor=return_indx,
+#'           event_dates=trumpelection,market_model="mrkt_adj")
+#' # market adjusted model (within sample estimation)
+#' event2car(returns=returns_firms,regressor=return_indx,
+#'           event_dates=trumpelection,market_model="mrkt_adj_within")
 
 
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
@@ -22,6 +85,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
   }
 
   if (method %in% c("mrkt_adj_within","mrkt_adj_out")){
+    if (!is.null(ncol(regressor))) {
+      regressor <- regressor[ ,1]
+    }
 
     if (NROW(returns) != NROW(regressor)) {
       stop("Length of returns is not equal to length of regressor")
@@ -45,7 +111,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
   if (imputation == "mean") {
     if (any(colSums(is.na(returns))>0)) {
       missing <- colnames(returns)[colSums(is.na(returns))>0]
-      warning(paste("Imputed data using mean returns mean of the following firm(s):",
+      warning(paste("Imputed data using mean returns of the following firm(s):",
                     paste(missing, collapse=' ')))
     }
     returns <- zoo::na.aggregate(returns,FUN=mean,na.rm=T)
@@ -171,8 +237,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
 
 # test
 
-event2car(returns = tech_returns[,2:19],regressor = tech_returns[,1],
+event2car(returns = tech_returns[,2:15],regressor = tech_returns[,1],
           event_date = c("2019-09-01","2016-11-20","2018-11-19","2018-12-16"),
-          method = "mean_adj",imputation = "pmm",
+          method = "mean_adj",imputation = "mean",
           car_lag = 1,car_lead = 5,estimation_period = 150)
 
