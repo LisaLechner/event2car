@@ -17,34 +17,52 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
               ########################################
               # sanity checks
               ########################################
-  if(NROW(returns) != NROW(regressor)){
-    stop("Length of returns is not equal to length of regressor")
-  }
-  if(NROW(returns) < estimation_period+car_lag+car_lead){
-    stop("Length of returns is too short. Either use a longer returns object or shorten the estimation or event period.")
-  }
+              method <- match.arg(method)
+              imputation <- match.arg(imputation)
 
-  if(NROW(regressor) < estimation_period+car_lag+car_lead){
-    stop("Length of regressor is too short. Either use a longer returns object or shorten the estimation or event period.")
-  }
+              event_date <- as.Date(event_date)
 
+              if (NROW(returns) < estimation_period+car_lag+car_lead) {
+                stop("Length of returns is too short.
+                     Either use a longer returns object or shorten the estimation or event period.")
+              }
+
+              if (method %in% c("mrkt_adj_within","mrkt_adj_out")){
+
+                  if (NROW(returns) != NROW(regressor)) {
+                    stop("Length of returns is not equal to length of regressor")
+                    }
+                  if (NROW(regressor) < estimation_period+car_lag+car_lead) {
+                    stop("Length of regressor is too short.
+                         Either use a longer returns object or shorten the estimation or event period.")
+                  }
+                  if (any(!time(regressor) %in% time(regressor))) {
+                    warning("regressor and returns have different time ranges.")
+                  }
+              }
               #------------
               # handling missing data
               #------------
                 # fast mean imputation
-                if(any(colSums(is.na(returns))>0)){
+                if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
-                    warning(paste("Imputed data breturns mean of the following firm(s):",paste(missing, collapse=' ')))}
+                    warning(paste("Imputed data breturns mean of the following firm(s):",
+                                  paste(missing, collapse=' ')))
+                    }
                 returns <- zoo::na.aggregate(returns,FUN=mean,na.rm=T)
                 # drop firms with NAs
-                if(any(colSums(is.na(returns))>0)){
+                if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
-                    warning(paste("Drop following firm(s) due to missing data:",paste(missing, collapse=' ')))}
+                    warning(paste("Drop following firm(s) due to missing data:",
+                                  paste(missing, collapse=' ')))
+                    }
                 returns <- returns[,colSums(is.na(returns))==0]
                 # mice
-                if(any(colSums(is.na(returns))>0)){
+                if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
-                    warning(paste("Imputed data using predictive mean matching of the following firm(s):",paste(missing, collapse=' ')))}
+                    warning(paste("Imputed data using predictive mean matching of the following firm(s):",
+                                  paste(missing, collapse=' ')))
+                    }
                 returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
                 returns <- zoo::zoo(returns)
 
