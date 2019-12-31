@@ -1,22 +1,12 @@
-# datensatz aufbauen
 
-event_date = as.Date("2016-11-20")
-event_date = as.Date("2018-11-19")
-event_date = c("2016-11-20","2018-11-19","2018-12-16")
-returns = tech_returns[,2:19]
-regressor = tech_returns[,1]
-car_lag = 1
-car_lead = 5
-estimation_period=150
 
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
                       imputation = c("mean","none","pmm"),
                       car_lag = 1,car_lead = 5,estimation_period = 150){
 
-  ########################################
-  # sanity checks
-  ########################################
+
+  # Sanity Checks
   method <- match.arg(method)
   imputation <- match.arg(imputation)
 
@@ -49,12 +39,10 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     }
   }
 
-  #------------
-  # handling missing data
-  #------------
 
+  # Handling missing data
+  ## mean imputation
   if (imputation == "mean") {
-    # fast mean imputation
     if (any(colSums(is.na(returns))>0)) {
       missing <- colnames(returns)[colSums(is.na(returns))>0]
       warning(paste("Imputed data using mean returns mean of the following firm(s):",
@@ -62,9 +50,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     }
     returns <- zoo::na.aggregate(returns,FUN=mean,na.rm=T)
   }
-
+  ## no imputation: dropping firms with NAs
   if (imputation == "none") {
-    # drop firms with NAs
     if (any(colSums(is.na(returns))>0)) {
       missing <- colnames(returns)[colSums(is.na(returns))>0]
       warning(paste("Drop following firm(s) due to missing data:",
@@ -72,9 +59,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     }
     returns <- returns[,colSums(is.na(returns))==0]
   }
-
+  ## pmm: predictive mean matching
   if (imputation == "pmm") {
-    # mice
     if (any(colSums(is.na(returns))>0)) {
       missing <- colnames(returns)[colSums(is.na(returns))>0]
       warning(paste("Imputed data using predictive mean matching of the following firm(s):",
@@ -84,128 +70,92 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     returns <- zoo::zoo(returns)
   }
 
-temp <- lapply(event_date,function(event){
-  if (method == "mean_adj") {
-    ########################################
-    # mean adjusted
-    ########################################
+  # Estimate abnormal returns, confidence intervals,
+  # and the cumulative abnormal return for each event and each firm
+  temp <- lapply(event_date,function(event){
+    ## Mean adjusted model
+    if (method == "mean_adj") {
+      ### data prep
+      #### estimation period data
+      y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
+      #### event period data
+      y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
+      ### abnormal returns
+      ar <- sapply(seq_len(ncol(y)),function(i){
+        as.numeric(y2[,i]) - mean(as.numeric(y[,i]))})
 
-    #------------
-    # data prep
-    #------------
-    # estimation period data
-    y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
-    # event period data
-    y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
+      ci <- sapply(seq_len(ncol(ar)),function(i){
+        se <- qnorm(0.975)*sd(ar[,i])/sqrt(nrow(ar))
+        m <- mean(ar[,i])
+        c(m-se, m+se)
+      })
+      ci <- t(ci)
+      ### output
+      out <- cbind(colMeans(ar),ci)
+      colnames(out) <- c("ar_mean","ci_lower","ci_upper")
 
-    #------------
-    # abnormal returns
-    #------------
-    ar <- sapply(seq_len(ncol(y)),function(i){
-      as.numeric(y2[,i]) - mean(as.numeric(y[,i]))})
+      out <- data.frame(out)
+      out$car <- colSums(ar)
+      out$firm <- names(y)
+      row.names(out) <- NULL
 
-    ci <- sapply(seq_len(ncol(ar)),function(i){
-      se <- qnorm(0.975)*sd(ar[,i])/sqrt(nrow(ar))
-      m <- mean(ar[,i])
-      c(m-se, m+se)
-    })
-    ci <- t(ci)
+      out <- out[c(5,1:4)]
+    }
+    ## Market adjusted (within sample) model
+    if (method == "mrkt_adj_within") {
+      ### data prep
+      y <- window(returns, start=(event-estimation_period-car_lag),end=(event+car_lead))
+      x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event+car_lead))
+      x2 <- time(y) %in% seq(as.Date(event-car_lag), as.Date(event+car_lead), "days")
+      ### regression inkl. event period
+      z <- lm(y~x1+x2)
+      ### output
+      out <- cbind(coef(z)[3,],
+                   confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
+      colnames(out) <- c("ar_coef","ci_lower","ci_upper")
 
-    #------------
-    # output
-    #------------
-    out <- cbind(colMeans(ar),ci)
-    colnames(out) <- c("ar_mean","ci_lower","ci_upper")
+      out <- data.frame(out)
+      out$car <- out$ar * sum(ifelse(x2==TRUE,1,0))
+      out$firm <- rownames(out)
+      row.names(out) <- NULL
 
-    out <- data.frame(out)
-    out$car <- colSums(ar)
-    out$firm <- names(y)
-    row.names(out) <- NULL
+      out <- out[c(5,1:4)]
+    }
+    ## Market adjusted (within sample) model
+    if (method == "mrkt_adj_out") {
+      ### data prep
+      #### estimation period data
+      y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
+      x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event-car_lag))
+      #### event period data
+      y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
+      x12 <- window(regressor, start=(event-car_lag),end=(event+car_lead))
+      ### regression
+      z <- lm(y~x1)
+      ### prediction or abnormal returns
+      ar <- sapply(seq_along(x12),function(i){
+        y2[i,] - (m[1,] + m[2,]*x12[[i]])})
+      ci <- sapply(seq_len(nrow(ar)),function(i){
+        se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
+        m <- mean(ar[i,])
+        c(m-se, m+se)
+      })
+      ci <- t(ci)
+      ### output
+      out <- cbind(rowMeans(ar),ci)
+      colnames(out) <- c("ar_mean","ci_lower","ci_upper")
 
-    out <- out[c(5,1:4)]
-  }
+      out <- data.frame(out)
+      out$car <- rowSums(ar)
+      out$firm <- rownames(out)
+      row.names(out) <- NULL
 
-  if (method == "mrkt_adj_within") {
-    ########################################
-    # market adjusted (within sample)
-    ########################################
-
-    #------------
-    # data prep
-    #------------
-    y <- window(returns, start=(event-estimation_period-car_lag),end=(event+car_lead))
-    x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event+car_lead))
-    x2 <- time(y) %in% seq(as.Date(event-car_lag), as.Date(event+car_lead), "days")
-
-    #------------
-    # regression inkl. event period
-    #------------
-    z <- lm(y~x1+x2)
-
-    #------------
-    # output
-    #------------
-    out <- cbind(coef(z)[3,],
-                 confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
-    colnames(out) <- c("ar_coef","ci_lower","ci_upper")
-
-    out <- data.frame(out)
-    out$car <- out$ar * sum(ifelse(x2==TRUE,1,0))
-    out$firm <- rownames(out)
-    row.names(out) <- NULL
-
-    out <- out[c(5,1:4)]
-  }
-
-  if (method == "mrkt_adj_out") {
-    ########################################
-    # market adjusted (out-of sample)
-    ########################################
-
-    #------------
-    # data prep
-    #------------
-    # estimation period data
-    y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
-    x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event-car_lag))
-    # event period data
-    y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
-    x12 <- window(regressor, start=(event-car_lag),end=(event+car_lead))
-
-    #------------
-    # regression
-    #------------
-    z <- lm(y~x1)
-
-    #------------
-    # prediction or abnormal returns
-    #------------
-    ar <- sapply(seq_along(x12),function(i){
-      y2[i,] - (m[1,] + m[2,]*x12[[i]])})
-    ci <- sapply(seq_len(nrow(ar)),function(i){
-      se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
-      m <- mean(ar[i,])
-      c(m-se, m+se)
-    })
-    ci <- t(ci)
-
-    #------------
-    # output
-    #------------
-    out <- cbind(rowMeans(ar),ci)
-    colnames(out) <- c("ar_mean","ci_lower","ci_upper")
-
-    out <- data.frame(out)
-    out$car <- rowSums(ar)
-    out$firm <- rownames(out)
-    row.names(out) <- NULL
-
-    out <- out[c(5,1:4)]
-  }
-  return(out)
-})
-names(temp) <- event_date
-return(temp)
+      out <- out[c(5,1:4)]
+    }
+    return(out)
+  })
+  names(temp) <- event_date
+  return(temp)
 }
 
 
