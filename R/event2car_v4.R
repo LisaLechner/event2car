@@ -13,23 +13,23 @@
 #' The generic function is dispatched for such classes as
 #'  \code{zoo}. (future versions of the package allow for classes of \code{data.frame}.)
 #'
-#' If \code{market_model} is \emph{mrkt_adj} or \code{sim}
+#' If \code{market_model} is \emph{mrkt_adj_out} or \code{mrkt_adj_within}
 #' and \code{regressor} has the length greater than one, the first element of
 #' \code{regressor} will be applied for each security in \code{returns}.
 #'
 #' @param returns an object of \code{data.frame} or \code{zoo} containing rates of returns of securities.
 #' @param regressor an object of the same class as \code{returns} containing regressors.
 #'                  The argument can be omitted, if market model is \code{mean_adj}.
-#' @param event_dates an object of class \code{Date} containing one event date or multiple event dates
+#' @param event_date an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
 #' @param estimation_period an object of class \code{intenger} stating the number of days
 #'  prior to the event over which the market model parameters are estimated. Default is 250 days.
 #'  Note that the event period itself is not included in the event period to prevent the event from influencing the normal performance model parameter estimates.
 #' @param car_lag an object of class \code{intenger} measuring the start of the event window. The default is 1 day prior to the event date.
 #' @param car_lead an object of class \code{intenger} measuring the end of the event window. The default is 5 days after the event date.
-#' @param market_model market_model a character indicating the market model among
-#' \code{mean_adj}, \code{mrkt_adj}, and \code{sim}.
+#' @param method a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
+#' \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.
 
-#' @return an object of class \code{data.frame} which contains cumulative abnormal returns, the average cumulative abnormal return
+#' @return an object of class \code{list} which contains cumulative abnormal returns, the average cumulative abnormal return
 #' (controls for varying event period durations if non-trading days are in the period), the number of tradingdays,
 #' significance levels of the market-return-coefficient, significance level of the event-dummy-coefficient, and model fit (rsquared) per securities per event date(s).
 #' Note that significance levels and rsquared are NA if market model is \code{mean_adj}.
