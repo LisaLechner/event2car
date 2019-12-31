@@ -61,13 +61,22 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
   }
   ## pmm: predictive mean matching
   if (imputation == "pmm") {
-    if (any(colSums(is.na(returns))>0)) {
-      missing <- colnames(returns)[colSums(is.na(returns))>0]
-      warning(paste("Imputed data using predictive mean matching of the following firm(s):",
-                    paste(missing, collapse=' ')))
+    if (library("mice",logical.return=TRUE)) {
+      if (any(colSums(is.na(returns))>0)) {
+        missing <- colnames(returns)[colSums(is.na(returns))>0]
+        warning(paste("Imputed data using predictive mean matching of the following firm(s):",
+                      paste(missing, collapse=' ')))
+      }
+
+
+     dates_returns <- time(returns)
+     returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
+     row.names(returns) <- dates_returns
+     returns <- zoo::zoo(returns)
+     zoo::index(returns) <- dates_returns
+    } else {
+      stop("'mice' package not installed. Choose another imputation method or run install.packages('mice')")
     }
-    returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
-    returns <- zoo::zoo(returns)
   }
 
   # Estimate abnormal returns, confidence intervals,
@@ -134,11 +143,12 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       z <- lm(y~x1)
       ### prediction or abnormal returns
       ar <- sapply(seq_along(x12),function(i){
-        y2[i,] - (m[1,] + m[2,]*x12[[i]])})
+        y2[i, ] - (coef(z)[1, ] + coef(z)[2, ] * x12[[i]])
+        })
       ci <- sapply(seq_len(nrow(ar)),function(i){
-        se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
-        m <- mean(ar[i,])
-        c(m-se, m+se)
+        ar_se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
+        ar_mean <- mean(ar[i,])
+        c(ar_mean-ar_se, ar_mean+ar_se)
       })
       ci <- t(ci)
       ### output
@@ -161,7 +171,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
 
 # test
 
-event2car(returns = tech_returns[,2:19],regressor = tech_returns[,1],event_date = c("2019-09-01","2016-11-20","2018-11-19","2018-12-16"),
-          method = "mrkt_adj_within",imputation = "mean",
+event2car(returns = tech_returns[,2:19],regressor = tech_returns[,1],
+          event_date = c("2019-09-01","2016-11-20","2018-11-19","2018-12-16"),
+          method = "mean_adj",imputation = "pmm",
           car_lag = 1,car_lead = 5,estimation_period = 150)
 
