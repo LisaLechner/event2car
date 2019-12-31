@@ -11,7 +11,7 @@ estimation_period=150
 
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
-                      imputation = c("none","mean","pmm"),
+                      imputation = c("mean","none","pmm"),
                       car_lag = 1,car_lead = 5,estimation_period = 150){
 
               ########################################
@@ -40,16 +40,22 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                     warning("regressor and returns have different time ranges.")
                   }
               }
+
               #------------
               # handling missing data
               #------------
+
+              if (impuation == "mean") {
                 # fast mean imputation
                 if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
                     warning(paste("Imputed data breturns mean of the following firm(s):",
                                   paste(missing, collapse=' ')))
-                    }
+                }
                 returns <- zoo::na.aggregate(returns,FUN=mean,na.rm=T)
+              }
+
+              if (impuation == "none") {
                 # drop firms with NAs
                 if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
@@ -57,6 +63,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                                   paste(missing, collapse=' ')))
                     }
                 returns <- returns[,colSums(is.na(returns))==0]
+              }
+
+              if (impuation == "pmm") {
                 # mice
                 if (any(colSums(is.na(returns))>0)) {
                     missing <- colnames(returns)[colSums(is.na(returns))>0]
@@ -65,7 +74,10 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                     }
                 returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
                 returns <- zoo::zoo(returns)
+              }
 
+
+              if (method == "mean_adj") {
               ########################################
               # mean adjusted
               ########################################
@@ -103,7 +115,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                   row.names(out) <- NULL
 
                   out <- out[c(5,1:4)]
+              }
 
+              if (method == "mrkt_adj_within") {
               ########################################
               # market adjusted (within sample)
               ########################################
@@ -133,7 +147,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                   row.names(out) <- NULL
 
                   out <- out[c(5,1:4)]
+              }
 
+              if (method == "mrkt_adj_out") {
               ########################################
               # market adjusted (out-of sample)
               ########################################
@@ -177,6 +193,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                   row.names(out) <- NULL
 
                   out <- out[c(5,1:4)]
+              }
 
 
 }
