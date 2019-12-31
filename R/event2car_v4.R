@@ -2,7 +2,7 @@
 
 event_date = as.Date("2016-11-20")
 event_date = as.Date("2018-11-19")
-event_date = as.Date("2018-12-16")
+event_date = c("2016-11-20","2018-11-19","2018-12-16")
 returns = tech_returns[,2:19]
 regressor = tech_returns[,1]
 car_lag = 1
@@ -26,6 +26,10 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     stop("Length of returns is too short.
                      Either use a longer returns object or shorten the estimation or event period.")
   }
+  if (min(time(returns))>min(event_date)-estimation_period){
+    stop("Length of returns is too short.
+                     Either use a longer returns object or shorten the estimation or event period.")
+  }
 
   if (method %in% c("mrkt_adj_within","mrkt_adj_out")){
 
@@ -35,6 +39,10 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     if (NROW(regressor) < estimation_period+car_lag+car_lead) {
       stop("Length of regressor is too short.
                          Either use a longer returns object or shorten the estimation or event period.")
+    }
+    if (min(time(returns))>min(event_date)-estimation_period){
+      stop("Length of regressor is too short.
+                     Either use a longer regressor object or shorten the estimation or event period.")
     }
     if (any(!time(regressor) %in% time(regressor))) {
       warning("regressor and returns have different time ranges.")
