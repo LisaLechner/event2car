@@ -11,3 +11,5 @@ VignetteBuilder: knitr
 RoxygenNote: 7.0.0
 Imports: zoo (>= 1.8-6), stats (>= 3.6.1)
 Suggests: mice (>= 3.7.0), knitr (>= 1.26)
+URL: https://github.com/LisaLechner/event2car
+BugReports: https://github.com/LisaLechner/event2car/issues
