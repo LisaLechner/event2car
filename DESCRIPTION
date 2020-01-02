@@ -3,11 +3,11 @@ Title: Calculates cumulative abnormal return(s) of event(s) for firm(s)
 Version: 1.0
 Authors@R: person("Lisa", "Lechner", email = "lisa.lechner@uibk.ac.at", role = c("aut", "cre"))
 Description: The package allows for the calculation of cumulative abnormal return(s) of one or several event(s) for one or multiple firm(s).  
-Depends: R (>= 3.6.1)
+Depends: R (>= 3.6.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 VignetteBuilder: knitr
 RoxygenNote: 7.0.0
 Imports: zoo (>= 1.8-6), stats (>= 3.6.1)
-Suggests: mice (>= 3.7.0)
+Suggests: mice (>= 3.7.0), knitr (>= 1.26)

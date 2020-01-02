@@ -26,6 +26,11 @@ The argument can be omitted, if market model is \code{mean_adj}.}
 \item{method}{a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
 \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.}
 
+\item{imputation}{a character indicating the way of dealing with missing values:
+No imputation at all and dropping observations with NAs (\code{none}),
+imputing missing data with the mean stock return (\code{mean}),
+imputing missing data by dint of predictive mean matching used in the mice package (\code{pmm}).}
+
 \item{car_lag}{an object of class \code{intenger} measuring the start of the event window. The default is 1 day prior to the event date.}
 
 \item{car_lead}{an object of class \code{intenger} measuring the end of the event window. The default is 5 days after the event date.}
@@ -66,13 +71,13 @@ returns_firms <- tech_returns[,2:19]
 return_indx <- tech_returns[,1]
 # mean adjusted model
 event2car(returns=returns_firms,regressor=return_indx,
-          event_dates=trumpelection,market_model="mean_adj")
+          event_date=trumpelection,method="mean_adj")
 # market adjusted model (out-of sample estimation)
 event2car(returns=returns_firms,regressor=return_indx,
-          event_dates=trumpelection,market_model="mrkt_adj_out")
+          event_date=trumpelection,method="mrkt_adj_out")
 # market adjusted model (within sample estimation)
 event2car(returns=returns_firms,regressor=return_indx,
-          event_dates=trumpelection,market_model="mrkt_adj_within")
+          event_date=trumpelection,method="mrkt_adj_within")
 }
 \references{
 MacKinlay, A.C. \emph{Event Studies in Economics and Finance}.

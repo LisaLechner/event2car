@@ -28,6 +28,10 @@
 #' @param car_lead an object of class \code{intenger} measuring the end of the event window. The default is 5 days after the event date.
 #' @param method a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
 #' \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.
+#' @param imputation a character indicating the way of dealing with missing values:
+#' No imputation at all and dropping observations with NAs (\code{none}),
+#' imputing missing data with the mean stock return (\code{mean}),
+#' imputing missing data by dint of predictive mean matching used in the mice package (\code{pmm}).
 
 #' @return an object of class \code{list} which contains abnormal returns on the event date(s),
 #' confidence intervals of the abnormal returns, and the cumulative abnormal return of the event period(s).
@@ -42,7 +46,7 @@
 #' @references Davies, R., Studnicka, Z. \emph{The heterogeneous impact of Brexit: Early indications from the FTSE}.
 #' European Economic Review, 110:1-17, 2018.
 #' @importFrom zoo index na.aggregate zoo
-#' @importFrom stats time window lm
+#' @importFrom stats coef confint qnorm sd time window lm
 #'
 #' @keywords eventstudy stock finance
 #'
@@ -53,13 +57,13 @@
 #' return_indx <- tech_returns[,1]
 #' # mean adjusted model
 #' event2car(returns=returns_firms,regressor=return_indx,
-#'           event_dates=trumpelection,market_model="mean_adj")
+#'           event_date=trumpelection,method="mean_adj")
 #' # market adjusted model (out-of sample estimation)
 #' event2car(returns=returns_firms,regressor=return_indx,
-#'           event_dates=trumpelection,market_model="mrkt_adj_out")
+#'           event_date=trumpelection,method="mrkt_adj_out")
 #' # market adjusted model (within sample estimation)
 #' event2car(returns=returns_firms,regressor=return_indx,
-#'           event_dates=trumpelection,market_model="mrkt_adj_within")
+#'           event_date=trumpelection,method="mrkt_adj_within")
 
 #' @export
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
@@ -126,7 +130,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
   }
   ## pmm: predictive mean matching
   if (imputation == "pmm") {
-    if (library("mice",logical.return=TRUE)) {
+    if (requireNamespace("mice", quietly = TRUE)) {
       if (any(colSums(is.na(returns))>0)) {
         missing <- colnames(returns)[colSums(is.na(returns))>0]
         warning(paste("Imputed data using predictive mean matching of the following firm(s):",
@@ -159,7 +163,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
         as.numeric(y2[,i]) - mean(as.numeric(y[,i]))})
 
       ci <- sapply(seq_len(ncol(ar)),function(i){
-        se <- qnorm(0.975)*sd(ar[,i])/sqrt(nrow(ar))
+        se <- stats::qnorm(0.975)*stats::sd(ar[,i])/sqrt(nrow(ar))
         m <- mean(ar[,i])
         c(m-se, m+se)
       })
@@ -184,8 +188,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       ### regression inkl. event period
       z <- stats::lm(y~x1+x2)
       ### output
-      out <- cbind(coef(z)[3,],
-                   confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
+      out <- cbind(stats::coef(z)[3,],
+                   stats::confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
       colnames(out) <- c("ar_coef","ci_lower","ci_upper")
 
       out <- data.frame(out)
@@ -208,7 +212,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       z <- stats::lm(y~x1)
       ### prediction or abnormal returns
       ar <- sapply(seq_along(x12),function(i){
-        y2[i, ] - (coef(z)[1, ] + coef(z)[2, ] * x12[[i]])
+        y2[i, ] - (stats::coef(z)[1, ] + stats::coef(z)[2, ] * x12[[i]])
         })
       ci <- sapply(seq_len(nrow(ar)),function(i){
         ar_se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
