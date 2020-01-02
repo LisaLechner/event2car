@@ -41,9 +41,8 @@
 #' of Event Studies}. Journal of Financial Economics, 14:3-31, 1985.
 #' @references Davies, R., Studnicka, Z. \emph{The heterogeneous impact of Brexit: Early indications from the FTSE}.
 #' European Economic Review, 110:1-17, 2018.
-#' @importFrom plyr ldply
-#' @importFrom zoo index merge.zoo coredata
-#' @importFrom stats na.omit time
+#' @importFrom zoo index na.aggregate zoo
+#' @importFrom stats time window lm
 #'
 #' @keywords eventstudy stock finance
 #'
@@ -80,7 +79,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     stop("Length of returns is too short.
                      Either use a longer returns object or shorten the estimation- or event period.")
   }
-  if (min(time(returns))>=min(event_date)-estimation_period-car_lag | max(time(returns))<=max(event_date)-car_lead){
+  if (min(stats::time(returns))>=min(event_date)-estimation_period-car_lag | max(stats::time(returns))<=max(event_date)-car_lead){
     stop("Length of returns is too short.
                      Either use a longer returns object or shorten the estimation- or event period.")
   }
@@ -97,11 +96,11 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       stop("Length of regressor is too short.
                          Either use a longer returns object or shorten the estimation- or event period.")
     }
-    if (min(time(regressor))>=min(event_date)-estimation_period-car_lag | max(time(regressor))<=max(event_date)-car_lead){
+    if (min(stats::time(regressor))>=min(event_date)-estimation_period-car_lag | max(stats::time(regressor))<=max(event_date)-car_lead){
       stop("Length of regressor is too short.
                      Either use a longer regressor object or shorten the estimation- or event period.")
     }
-    if (any(!time(regressor) %in% time(regressor))) {
+    if (any(!stats::time(regressor) %in% stats::time(regressor))) {
       warning("regressor and returns have different time ranges.")
     }
   }
@@ -136,7 +135,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       }
 
 
-     dates_returns <- time(returns)
+     dates_returns <- stats::time(returns)
      returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
      row.names(returns) <- dates_returns
      returns <- zoo::zoo(returns)
@@ -182,9 +181,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       ### data prep
       y <- window(returns, start=(event-estimation_period-car_lag),end=(event+car_lead))
       x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event+car_lead))
-      x2 <- time(y) %in% seq(as.Date(event-car_lag), as.Date(event+car_lead), "days")
+      x2 <- stats::time(y) %in% seq(as.Date(event-car_lag), as.Date(event+car_lead), "days")
       ### regression inkl. event period
-      z <- lm(y~x1+x2)
+      z <- stats::lm(y~x1+x2)
       ### output
       out <- cbind(coef(z)[3,],
                    confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
@@ -201,13 +200,13 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     if (method == "mrkt_adj_out") {
       ### data prep
       #### estimation period data
-      y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
-      x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event-car_lag))
+      y <- stats::window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
+      x1 <- stats::window(regressor, start=(event-estimation_period-car_lag),end=(event-car_lag))
       #### event period data
-      y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
-      x12 <- window(regressor, start=(event-car_lag),end=(event+car_lead))
+      y2 <- stats::window(returns, start=(event-car_lag),end=(event+car_lead))
+      x12 <- stats::window(regressor, start=(event-car_lag),end=(event+car_lead))
       ### regression
-      z <- lm(y~x1)
+      z <- stats::lm(y~x1)
       ### prediction or abnormal returns
       ar <- sapply(seq_along(x12),function(i){
         y2[i, ] - (coef(z)[1, ] + coef(z)[2, ] * x12[[i]])
