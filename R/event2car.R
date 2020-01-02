@@ -62,7 +62,7 @@
 #' event2car(returns=returns_firms,regressor=return_indx,
 #'           event_dates=trumpelection,market_model="mrkt_adj_within")
 
-
+#' @export
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
                       imputation = c("mean","none","pmm"),
