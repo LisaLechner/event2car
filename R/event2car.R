@@ -47,7 +47,6 @@
 #' @keywords eventstudy stock finance
 #'
 #' @examples
-#' data('tech_returns')
 #' # prepare data
 #' trumpelection <- as.Date("2016-11-08")
 #' returns_firms <- tech_returns[,2:19]

@@ -8,9 +8,9 @@
 #'
 #' @usage data("tech_returns", package="estudy2car")
 #'
-#' @keywords datasets
+#' @keywords datasets stock firms
 #'
-#' @format An objects of class \code{zoo} containing 503 observations and 19 variables.
+#' @format An objects of class \code{zoo} containing 1045 observations and 19 variables.
 #' \describe{
 #'   \item{^NDX}{NASDAQ return  from 2015-11-03 to 2017-11-29.}
 #'   \item{MSFT}{Microsoft's from 2015-11-03 to 2017-11-29.}
