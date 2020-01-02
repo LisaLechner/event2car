@@ -50,8 +50,8 @@
 #' data('tech_returns')
 #' # prepare data
 #' trumpelection <- as.Date("2016-11-08")
-#' returns_firms=tech_returns[,2:19]
-#' return_indx = tech_returns[,1]
+#' returns_firms <- tech_returns[,2:19]
+#' return_indx <- tech_returns[,1]
 #' # mean adjusted model
 #' event2car(returns=returns_firms,regressor=return_indx,
 #'           event_dates=trumpelection,market_model="mean_adj")
