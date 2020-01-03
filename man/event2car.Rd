@@ -9,7 +9,8 @@ event2car(
   regressor = NULL,
   event_date = NULL,
   method = c("mean_adj", "mrkt_adj_within", "mrkt_adj_out"),
-  imputation = c("mean", "none", "pmm"),
+  imputation_returns = c("mean", "approx", "none", "pmm"),
+  imputation_regressor = c("mean", "approx"),
   car_lag = 1,
   car_lead = 5,
   estimation_period = 150
@@ -26,10 +27,15 @@ The argument can be omitted, if market model is \code{mean_adj}.}
 \item{method}{a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
 \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.}
 
-\item{imputation}{a character indicating the way of dealing with missing values:
-No imputation at all and dropping observations with NAs (\code{none}),
-imputing missing data with the mean stock return (\code{mean}),
-imputing missing data by dint of predictive mean matching used in the mice package (\code{pmm}).}
+\item{imputation_returns}{a character indicating the way of dealing with missing values in returns data:
+\code{none}: No imputation at all and dropping observations with NAs,
+\code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
+\code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
+\code{pmm}: imputing missing data by dint of predictive mean matching used in the mice package (for further information see `?mice::mice`).}
+
+\item{imputation_regressor}{a character indicating the way of dealing with missing values in regressor data:
+\code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
+\code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),}
 
 \item{car_lag}{an object of class \code{intenger} measuring the start of the event window. The default is 1 day prior to the event date.}
 
@@ -60,7 +66,7 @@ This is the logic suggested by multiple scholars. See references below.
 The generic function is dispatched for such classes as
  \code{zoo}. (future versions of the package allow for classes of \code{data.frame}.)
 
-If \code{market_model} is \emph{mrkt_adj_out} or \code{mrkt_adj_within}
+If \code{method} is \emph{mrkt_adj_out} or \code{mrkt_adj_within}
 and \code{regressor} has the length greater than one, the first element of
 \code{regressor} will be applied for each security in \code{returns}.
 }
