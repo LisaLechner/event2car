@@ -1,4 +1,4 @@
-#' event2car: Calculates \code{CAR} (cumulative abnormal returns) for firm(s) and event(s)
+#' Cumulative abnormal returns for firm(s) at event(s)
 #'
 #' The function calculates abnormal returns and confidence intervals
 #' during the event period(s) as well as
