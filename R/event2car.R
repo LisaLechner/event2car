@@ -176,7 +176,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       out$car <- colSums(ar)
       out$firm <- names(y)
       row.names(out) <- NULL
-
+      if (is.null(out$firm)) {
+        out$firm <- 1:nrow(out)
+      }
       out <- out[c(5,1:4)]
     }
     ## Market adjusted (within sample) model
@@ -195,6 +197,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       out <- data.frame(out)
       out$car <- out$ar * sum(ifelse(x2==TRUE,1,0))
       out$firm <- rownames(out)
+      if ("X.x2TRUE" %in% out$firm) {
+        out$firm <- 1:nrow(out)
+      }
       row.names(out) <- NULL
 
       out <- out[c(5,1:4)]
@@ -227,6 +232,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       out <- data.frame(out)
       out$car <- rowSums(ar)
       out$firm <- rownames(out)
+      if (is.null(out$firm)) {
+        out$firm <- 1:nrow(out)
+      }
       row.names(out) <- NULL
 
       out <- out[c(5,1:4)]
