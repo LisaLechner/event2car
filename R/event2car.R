@@ -153,7 +153,11 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       warning(paste("Drop following firm(s) due to missing returns data:",
                     paste(missing, collapse=' ')))
     }
-    returns <- returns[,colSums(is.na(returns))==0]
+    if (any(ncol(returns)<2|is.null(ncol(returns))) & sum(is.na(returns))>0) {
+      stop("All firms dropped due to missing data. No data to estimate cumulative abnormal returns.")
+    } else {
+      returns <- returns[,colSums(is.na(returns))==0]
+    }
   }
   ## pmm: predictive mean matching
   if (imputation_returns == "pmm") {
