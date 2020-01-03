@@ -29,7 +29,7 @@
 #' @param method a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
 #' \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.
 #' @param imputation_returns a character indicating the way of dealing with missing values in returns data:
-#' \code{none}: No imputation at all and dropping observations with NAs,
+#' \code{drop}: No imputation at all and dropping observations with NAs,
 #' \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
 #' \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
 #' \code{pmm}: imputing missing data by dint of predictive mean matching used in the mice package (for further information see `?mice::mice`).
@@ -73,8 +73,8 @@
 #' @export
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
-                      imputation_returns = c("mean","approx","none","pmm"),
-                      imputation_regressor = c("mean","approx"),
+                      imputation_returns = c("approx","mean","drop","pmm"),
+                      imputation_regressor = c("approx","mean"),
                       car_lag = 1,car_lead = 5,estimation_period = 150){
 
 
@@ -138,7 +138,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     returns <- zoo::na.approx(returns)
   }
   ## no imputation_returns: dropping firms with NAs
-  if (imputation_returns == "none") {
+  if (imputation_returns == "drop") {
     if (any(colSums(is.na(returns))>0)) {
       missing <- colnames(returns)[colSums(is.na(returns))>0]
       warning(paste("Drop following firm(s) due to missing returns data:",
@@ -148,6 +148,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
   }
   ## pmm: predictive mean matching
   if (imputation_returns == "pmm") {
+    if (ncol(returns)==1) {
+      stop("Predictive mean matching requires at least two firms in the data.")
+    }
     if (requireNamespace("mice", quietly = TRUE)) {
       if (any(colSums(is.na(returns))>0)) {
         missing <- colnames(returns)[colSums(is.na(returns))>0]
@@ -235,8 +238,14 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       ### regression inkl. event period
       z <- stats::lm(y~x1+x2)
       ### output
-      out <- cbind(stats::coef(z)[3,],
-                   stats::confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
+      if (ncol(y)==1) {
+        out <- c(stats::coef(z)[[3]],stats::confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
+        names(out) <- NULL
+        out <- t(out)
+      } else {
+        out <- cbind(stats::coef(z)[3,],
+                     stats::confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
+      }
       colnames(out) <- c("ar_coef","ci_lower","ci_upper")
 
       out <- data.frame(out)
@@ -261,21 +270,43 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       ### regression
       z <- stats::lm(y~x1)
       ### prediction or abnormal returns
-      ar <- sapply(seq_along(x12),function(i){
-        y2[i, ] - (stats::coef(z)[1, ] + stats::coef(z)[2, ] * x12[[i]])
-        })
-      ci <- sapply(seq_len(nrow(ar)),function(i){
-        ar_se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
-        ar_mean <- mean(ar[i,])
-        c(ar_mean-ar_se, ar_mean+ar_se)
-      })
-      ci <- t(ci)
-      ### output
-      out <- cbind(rowMeans(ar),ci)
-      colnames(out) <- c("ar_mean","ci_lower","ci_upper")
 
-      out <- data.frame(out)
-      out$car <- rowSums(ar)
+      if (ncol(y)==1) {
+
+        ar <- sapply(seq_along(x12),function(i){
+          y2[[i]] - (stats::coef(z)[[1]] + stats::coef(z)[[2]] * x12[[i]])
+        })
+
+        ar_se <- qnorm(0.975)*sd(ar)/sqrt(length(ar))
+        ar_mean <- mean(ar)
+        ci <- c(ar_mean-ar_se, ar_mean+ar_se)
+        ci <- t(ci)
+        out <- cbind(ar_mean,ci)
+        colnames(out) <- c("ar_mean","ci_lower","ci_upper")
+        out <- data.frame(out)
+        out$car <- sum(ar)
+
+      } else {
+        ar <- sapply(seq_along(x12),function(i){
+          y2[i, ] - (stats::coef(z)[1, ] + stats::coef(z)[2, ] * x12[[i]])
+        })
+        ci <- sapply(seq_len(nrow(ar)),function(i){
+          ar_se <- qnorm(0.975)*sd(ar[i,])/sqrt(ncol(ar))
+          ar_mean <- mean(ar[i,])
+          c(ar_mean-ar_se, ar_mean+ar_se)
+        })
+        ci <- t(ci)
+
+        ### output
+        out <- cbind(rowMeans(ar),ci)
+        colnames(out) <- c("ar_mean","ci_lower","ci_upper")
+        out <- data.frame(out)
+        out$car <- rowSums(ar)
+      }
+
+
+
+
       out$firm <- rownames(out)
       if (is.null(out$firm)) {
         out$firm <- 1:nrow(out)
