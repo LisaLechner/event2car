@@ -3,6 +3,7 @@
 
 <!-- badges: start -->
 [![Travis build status](https://travis-ci.org/LisaLechner/event2car.svg?branch=master)](https://travis-ci.org/LisaLechner/event2car)
+[![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/LisaLechner/event2car?branch=master&svg=true)](https://ci.appveyor.com/project/LisaLechner/event2car)
 <!-- badges: end -->
 
 The event2car package allows users to generate *Cumulative Abnormal Returns*

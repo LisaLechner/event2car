@@ -1,3 +1,4 @@
 ^event2car\.Rproj$
 ^\.Rproj\.user$
 ^\.travis\.yml$
+^appveyor\.yml$
