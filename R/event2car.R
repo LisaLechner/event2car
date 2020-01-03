@@ -62,13 +62,16 @@
 #' return_indx <- tech_returns[,1]
 #' # mean adjusted model
 #' event2car(returns=returns_firms,regressor=return_indx,
-#'           event_date=trumpelection,method="mean_adj")
+#'          imputation_returns="mean",
+#'          event_date=trumpelection,method="mean_adj")
 #' # market adjusted model (out-of sample estimation)
 #' event2car(returns=returns_firms,regressor=return_indx,
-#'           event_date=trumpelection,method="mrkt_adj_out")
+#'          imputation_returns="mean",imputation_regressor="approx",
+#'          event_date=trumpelection,method="mrkt_adj_out")
 #' # market adjusted model (within sample estimation)
 #' event2car(returns=returns_firms,regressor=return_indx,
-#'           event_date=trumpelection,method="mrkt_adj_within")
+#'         imputation_returns="mean",imputation_regressor="approx",
+#'         event_date=trumpelection,method="mrkt_adj_within")
 
 #' @export
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
@@ -136,6 +139,12 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                     paste(missing, collapse=' ')))
     }
     returns <- zoo::na.approx(returns)
+    if (any(colSums(is.na(returns))>0)) {
+      missing <- colnames(returns)[colSums(is.na(returns))>0]
+      warning(paste("Drop following firm(s) due to too many missing returns data (unable to fill by dint of interpolated values):",
+                    paste(missing, collapse=' ')))
+    }
+    returns <- returns[,colSums(is.na(returns))==0]
   }
   ## no imputation_returns: dropping firms with NAs
   if (imputation_returns == "drop") {
@@ -238,8 +247,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       ### regression inkl. event period
       z <- stats::lm(y~x1+x2)
       ### output
-      if (ncol(y)==1) {
-        out <- c(stats::coef(z)[[3]],stats::confint(z)[rep(c(FALSE,FALSE,TRUE),ncol(y)),])
+      if (any(is.null(ncol(y)),ncol(y)==1)) {
+        out <- c(stats::coef(z)[[3]],stats::confint(z)[c(FALSE,FALSE,TRUE),])
         names(out) <- NULL
         out <- t(out)
       } else {
@@ -271,7 +280,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       z <- stats::lm(y~x1)
       ### prediction or abnormal returns
 
-      if (ncol(y)==1) {
+      if (any(is.null(ncol(y)),ncol(y)==1)) {
 
         ar <- sapply(seq_along(x12),function(i){
           y2[[i]] - (stats::coef(z)[[1]] + stats::coef(z)[[2]] * x12[[i]])

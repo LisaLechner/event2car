@@ -9,8 +9,8 @@ event2car(
   regressor = NULL,
   event_date = NULL,
   method = c("mean_adj", "mrkt_adj_within", "mrkt_adj_out"),
-  imputation_returns = c("mean", "approx", "none", "pmm"),
-  imputation_regressor = c("mean", "approx"),
+  imputation_returns = c("approx", "mean", "drop", "pmm"),
+  imputation_regressor = c("approx", "mean"),
   car_lag = 1,
   car_lead = 5,
   estimation_period = 150
@@ -28,7 +28,7 @@ The argument can be omitted, if market model is \code{mean_adj}.}
 \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.}
 
 \item{imputation_returns}{a character indicating the way of dealing with missing values in returns data:
-\code{none}: No imputation at all and dropping observations with NAs,
+\code{drop}: No imputation at all and dropping observations with NAs,
 \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
 \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
 \code{pmm}: imputing missing data by dint of predictive mean matching used in the mice package (for further information see `?mice::mice`).}
@@ -77,13 +77,16 @@ returns_firms <- tech_returns[,2:19]
 return_indx <- tech_returns[,1]
 # mean adjusted model
 event2car(returns=returns_firms,regressor=return_indx,
-          event_date=trumpelection,method="mean_adj")
+         imputation_returns="mean",
+         event_date=trumpelection,method="mean_adj")
 # market adjusted model (out-of sample estimation)
 event2car(returns=returns_firms,regressor=return_indx,
-          event_date=trumpelection,method="mrkt_adj_out")
+         imputation_returns="mean",imputation_regressor="approx",
+         event_date=trumpelection,method="mrkt_adj_out")
 # market adjusted model (within sample estimation)
 event2car(returns=returns_firms,regressor=return_indx,
-          event_date=trumpelection,method="mrkt_adj_within")
+        imputation_returns="mean",imputation_regressor="approx",
+        event_date=trumpelection,method="mrkt_adj_within")
 }
 \references{
 MacKinlay, A.C. \emph{Event Studies in Economics and Finance}.
