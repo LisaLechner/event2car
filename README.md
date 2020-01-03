@@ -1,5 +1,5 @@
 
-# event2car
+# event2car <img src="man/figures/logo.png" align="right" width="120" />
 
 <!-- badges: start -->
 [![Travis build status](https://travis-ci.org/LisaLechner/event2car.svg?branch=master)](https://travis-ci.org/LisaLechner/event2car)
