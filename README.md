@@ -91,10 +91,10 @@ return_indx <- tech_returns[,1]
 event2car(returns=returns_firms,regressor=return_indx,
            event_date=c(trumpelection,tariffcutschina),method="mean_adj")
 # market adjusted model (out-of sample estimation)
- event2car(returns=returns_firms,regressor=return_indx,
+event2car(returns=returns_firms,regressor=return_indx,
            event_date=c(trumpelection,tariffcutschina),method="mrkt_adj_out")
 # market adjusted model (within sample estimation)
- event2car(returns=returns_firms,regressor=return_indx,
+event2car(returns=returns_firms,regressor=return_indx,
            event_date=c(trumpelection,tariffcutschina),method="mrkt_adj_within")
 ```
 
