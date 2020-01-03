@@ -60,7 +60,7 @@ two main estimation strategies exist:
     cumulative abnormal returns. For an implementation see Davies and
     Studnicka (2018).
 
-For mean adjusted models, one uses out-of-sample-prediction.
+For mean adjusted models, the mean return during the event period gets substracted from the mean return of the estimation period.
 
 ### Decision III: Duration of the estimation period
 
