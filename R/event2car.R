@@ -13,7 +13,7 @@
 #' The generic function is dispatched for such classes as
 #'  \code{zoo}. (future versions of the package allow for classes of \code{data.frame}.)
 #'
-#' If \code{market_model} is \emph{mrkt_adj_out} or \code{mrkt_adj_within}
+#' If \code{method} is \emph{mrkt_adj_out} or \code{mrkt_adj_within}
 #' and \code{regressor} has the length greater than one, the first element of
 #' \code{regressor} will be applied for each security in \code{returns}.
 #'
@@ -28,11 +28,16 @@
 #' @param car_lead an object of class \code{intenger} measuring the end of the event window. The default is 5 days after the event date.
 #' @param method a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
 #' \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.
-#' @param imputation a character indicating the way of dealing with missing values:
-#' No imputation at all and dropping observations with NAs (\code{none}),
-#' imputing missing data with the mean stock return (\code{mean}),
-#' imputing missing data by dint of predictive mean matching used in the mice package (\code{pmm}).
-
+#' @param imputation_returns a character indicating the way of dealing with missing values in returns data:
+#' \code{none}: No imputation at all and dropping observations with NAs,
+#' \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
+#' \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
+#' \code{pmm}: imputing missing data by dint of predictive mean matching used in the mice package (for further information see `?mice::mice`).
+#'
+#' @param imputation_regressor a character indicating the way of dealing with missing values in regressor data:
+#' \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
+#' \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
+#'
 #' @return an object of class \code{list} which contains abnormal returns on the event date(s),
 #' confidence intervals of the abnormal returns, and the cumulative abnormal return of the event period(s).
 #' Note that the \code{mean_adj} adn the \code{mrkt_adj_out} method produce mean abnormal returns,
@@ -68,13 +73,15 @@
 #' @export
 event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
-                      imputation = c("mean","none","pmm"),
+                      imputation_returns = c("mean","approx","none","pmm"),
+                      imputation_regressor = c("mean","approx"),
                       car_lag = 1,car_lead = 5,estimation_period = 150){
 
 
   # Sanity Checks
   method <- match.arg(method)
-  imputation <- match.arg(imputation)
+  imputation_returns <- match.arg(imputation_returns)
+  imputation_regressor <- match.arg(imputation_regressor)
 
   event_date <- as.Date(event_date)
 
@@ -91,6 +98,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     if (!is.null(ncol(regressor))) {
       regressor <- regressor[ ,1]
     }
+
+
 
     if (NROW(returns) != NROW(regressor)) {
       stop("Length of returns is not equal to length of regressor")
@@ -109,9 +118,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
   }
 
 
-  # Handling missing data
-  ## mean imputation
-  if (imputation == "mean") {
+  # Handling missing data of returns
+  ## mean imputation_returns
+  if (imputation_returns == "mean") {
     if (any(colSums(is.na(returns))>0)) {
       missing <- colnames(returns)[colSums(is.na(returns))>0]
       warning(paste("Imputed data using mean returns of the following firm(s):",
@@ -119,32 +128,68 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     }
     returns <- zoo::na.aggregate(returns,FUN=mean,na.rm=T)
   }
-  ## no imputation: dropping firms with NAs
-  if (imputation == "none") {
+  ## mean imputation_returns
+  if (imputation_returns == "approx") {
     if (any(colSums(is.na(returns))>0)) {
       missing <- colnames(returns)[colSums(is.na(returns))>0]
-      warning(paste("Drop following firm(s) due to missing data:",
+      warning(paste("Replace NA values of returns data with interpolated values of the following firm(s):",
+                    paste(missing, collapse=' ')))
+    }
+    returns <- zoo::na.approx(returns)
+  }
+  ## no imputation_returns: dropping firms with NAs
+  if (imputation_returns == "none") {
+    if (any(colSums(is.na(returns))>0)) {
+      missing <- colnames(returns)[colSums(is.na(returns))>0]
+      warning(paste("Drop following firm(s) due to missing returns data:",
                     paste(missing, collapse=' ')))
     }
     returns <- returns[,colSums(is.na(returns))==0]
   }
   ## pmm: predictive mean matching
-  if (imputation == "pmm") {
+  if (imputation_returns == "pmm") {
     if (requireNamespace("mice", quietly = TRUE)) {
       if (any(colSums(is.na(returns))>0)) {
         missing <- colnames(returns)[colSums(is.na(returns))>0]
-        warning(paste("Imputed data using predictive mean matching of the following firm(s):",
+        warning(paste("Impute returns data using predictive mean matching of the following firm(s):",
                       paste(missing, collapse=' ')))
       }
 
 
-     dates_returns <- stats::time(returns)
-     returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
-     row.names(returns) <- dates_returns
-     returns <- zoo::zoo(returns)
-     zoo::index(returns) <- dates_returns
+      dates_returns <- stats::time(returns)
+      returns <- mice::complete(mice::mice(returns,method="pmm",printFlag = FALSE))
+      row.names(returns) <- dates_returns
+      returns <- zoo::zoo(returns)
+      zoo::index(returns) <- dates_returns
     } else {
-      stop("'mice' package not installed. Choose another imputation method or run install.packages('mice')")
+      stop("'mice' package not installed. Choose another imputation method for returns object or run install.packages('mice')")
+    }
+  }
+
+  if (any(is.na(returns)|is.nan(returns)|is.infinite(returns))) {
+    stop("Returns data has NA/NaN/Inf value(s) and no imputation has been choosen.")
+  }
+
+  # Handling missing data of regressor
+  if (method %in% c("mrkt_adj_within","mrkt_adj_out")){
+    ## mean imputation_regressor
+    if (imputation_regressor == "mean") {
+      if (sum(is.na(regressor))>0) {
+        warning("Impute data using mean regressor.")
+      }
+      regressor <- zoo::na.aggregate(regressor,FUN=mean,na.rm=T)
+    }
+
+    ## mean imputation_regressor
+    if (imputation_regressor == "approx") {
+      if (sum(is.na(regressor))>0) {
+        warning("Replace NA values in regressor with interpolated values.")
+      }
+      regressor <- zoo::na.approx(regressor,na.rm=T)
+    }
+
+    if (any(is.na(regressor)|is.nan(regressor)|is.infinite(regressor))) {
+      stop("Regressor has NA/NaN/Inf value(s) and no imputation has been choosen.")
     }
   }
 
