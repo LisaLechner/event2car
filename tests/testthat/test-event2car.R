@@ -64,4 +64,11 @@ test_that("Check correct NA handling.", {
                            event_date = event_date,method="mrkt_adj_within",
                            car_lag = 1,car_lead = 5,estimation_period = 150))
 
+  expect_error(event2car(returns = returns,
+                           regressor = regressor,
+                           imputation_returns = "drop",
+                           imputation_regressor = "approx",
+                           event_date = event_date,method="mrkt_adj_within",
+                           car_lag = 1,car_lead = 5,estimation_period = 150))
+
 })
