@@ -317,9 +317,6 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
         out$car <- rowSums(ar)
       }
 
-
-
-
       out$firm <- rownames(out)
       if (is.null(out$firm)) {
         out$firm <- 1:nrow(out)
