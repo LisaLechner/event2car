@@ -220,6 +220,14 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       #### event period data
       y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
       ### abnormal returns
+      if (any(is.null(ncol(y)),ncol(y)==1)) {
+        ar <- as.numeric(y2) - mean(as.numeric(y))
+        se <- stats::qnorm(0.975)*stats::sd(ar)/sqrt(length(ar))
+        m <- mean(ar)
+        ci <- c(m-se, m+se)
+        out <- data.frame(m,t(ci),sum(ar))
+        names(out) <- c("ar_mean","ci_lower","ci_upper","car")
+      } else {
       ar <- sapply(seq_len(ncol(y)),function(i){
         as.numeric(y2[,i]) - mean(as.numeric(y[,i]))})
 
@@ -232,9 +240,10 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       ### output
       out <- cbind(colMeans(ar),ci)
       colnames(out) <- c("ar_mean","ci_lower","ci_upper")
-
       out <- data.frame(out)
       out$car <- colSums(ar)
+      }
+
       out$firm <- names(y)
       row.names(out) <- NULL
       if (is.null(out$firm)) {
