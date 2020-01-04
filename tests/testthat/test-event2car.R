@@ -1,15 +1,13 @@
 context("event2car")
 library(event2car)
 
-
-
 test_that("Length of list equals number of event dates", {
   regressor <- as.matrix(rnorm(400))
   returns <- cbind(rnorm(400),rnorm(400),rnorm(400),rnorm(400),rnorm(400),rnorm(400))
   dates <- seq(as.Date("2016-01-01"), length = 400, by = "days")
 
-  regressor <- zoo(regressor)
-  returns <- zoo(returns)
+  regressor <- zoo::zoo(regressor)
+  returns <- zoo::zoo(returns)
 
   zoo::index(regressor) <- dates
   zoo::index(returns) <- dates
@@ -32,9 +30,6 @@ test_that("Length of list equals number of event dates", {
 
 })
 
-
-
-
 test_that("Check correct NA handling.", {
   regressor <- cbind(rnorm(400),rnorm(400))
   nas <- sample(length(regressor), 100)
@@ -44,8 +39,8 @@ test_that("Check correct NA handling.", {
   returns[nas] <- NA
   dates <- seq(as.Date("2016-01-01"), length = 400, by = "days")
 
-  regressor <- zoo(regressor)
-  returns <- zoo(returns)
+  regressor <- zoo::zoo(regressor)
+  returns <- zoo::zoo(returns)
 
   zoo::index(regressor) <- dates
   zoo::index(returns) <- dates
