@@ -96,6 +96,15 @@ event2car(returns=returns_firms,regressor=return_indx,
 # market adjusted model (within sample estimation)
 event2car(returns=returns_firms,regressor=return_indx,
            event_date=c(trumpelection,tariffcutschina),method="mrkt_adj_within")
+           
+# time-series car object
+effect_trump <- event2car_range(returns=returns_firms,regressor=return_indx,
+                                 imputation_returns="mean",
+                                 event_date=trumpelection,method="mean_adj")
+                                 
+summary(effect_trump)
+
+plot(effect_trump)
 ```
 
 ## References
