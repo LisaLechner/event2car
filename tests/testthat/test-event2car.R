@@ -16,7 +16,7 @@ test_that("Length of list equals number of event dates", {
   output <- event2car(returns = returns,
             imputation_returns = "mean",
             event_date = event_date,method="mean_adj",
-            car_lag = 1,car_lead = 5,estimation_period = 150)
+            car_lag = 1, car_lead = 5, estimation_period = 150)
   expect_equal(length(output),length(event_date))
 
 
@@ -24,8 +24,8 @@ test_that("Length of list equals number of event dates", {
   output <- event2car(returns = returns, regressor = regressor,
                       imputation_returns = "mean",
                       imputation_regressor = "mean",
-                      event_date = event_date,method="mrkt_adj_within",
-                      car_lag = 1,car_lead = 5,estimation_period = 150)
+                      event_date = event_date, method="mrkt_adj_within",
+                      car_lag = 1, car_lead = 5, estimation_period = 150)
   expect_equal(length(output),length(event_date))
 
 })
@@ -49,21 +49,21 @@ test_that("Check correct NA handling.", {
 
   expect_error(event2car(returns = returns,
                          imputation_returns = "pmm",
-                         event_date = event_date,method="mean_adj",
-                         car_lag = 1,car_lead = 5,estimation_period = 150))
+                         event_date = event_date, method="mean_adj",
+                         car_lag = 1, car_lead = 5, estimation_period = 150))
 
   expect_warning(event2car(returns = returns,
                            regressor = regressor,
                            imputation_returns = "approx",
                            imputation_regressor = "approx",
-                           event_date = event_date,method="mrkt_adj_within",
-                           car_lag = 1,car_lead = 5,estimation_period = 150))
+                           event_date = event_date, method="mrkt_adj_within",
+                           car_lag = 1, car_lead = 5, estimation_period = 150))
 
   expect_error(event2car(returns = returns,
                            regressor = regressor,
                            imputation_returns = "drop",
                            imputation_regressor = "approx",
                            event_date = event_date,method="mrkt_adj_within",
-                           car_lag = 1,car_lead = 5,estimation_period = 150))
+                           car_lag = 1, car_lead = 5, estimation_period = 150))
 
 })
