@@ -5,7 +5,8 @@
 \title{Plots cumulative abnormal returns over time}
 \usage{
 \method{plot}{event2car_range}(
-  object,
+  x,
+  ...,
   event_color = "red",
   event_linetype = "twodash",
   event_size = 1,
@@ -21,7 +22,9 @@
 )
 }
 \arguments{
-\item{object}{an object of class \code{event2car_range}.}
+\item{x}{an object of class \code{event2car_range}.}
+
+\item{...}{other arguments ignored (for compatibility with generic)}
 
 \item{event_color}{a character object indicating the color of the vertical lines at the \code{event_date}. Default is "red".}
 

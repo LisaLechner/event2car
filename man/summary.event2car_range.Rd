@@ -4,10 +4,12 @@
 \alias{summary.event2car_range}
 \title{Summarizing cumulative abnormal returns}
 \usage{
-\method{summary}{event2car_range}(object)
+\method{summary}{event2car_range}(object, ...)
 }
 \arguments{
 \item{object}{an object of class \code{event2car_range}.}
+
+\item{...}{other arguments ignored (for compatibility with generic)}
 }
 \description{
 summary method for the class "event2car_range".
