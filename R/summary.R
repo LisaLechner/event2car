@@ -3,9 +3,11 @@
 #' summary method for the class "event2car_range".
 #'
 #' @param object an object of class \code{event2car_range}.
+#' @param ... other arguments ignored (for compatibility with generic)
 #' @keywords internal
 #' @method summary event2car_range
-#' @importFrom stats reshape qnorm sd
+#' @export
+#' @importFrom stats reshape qnorm sd aggregate
 #' @examples
 #' trumpelection <- as.Date("2016-11-08")
 #' returns_firms <- tech_returns[,2:19]
@@ -14,8 +16,7 @@
 #'                                 imputation_returns="mean",
 #'                                 event_date=trumpelection,method="mean_adj")
 #' summary(effect_trump)
-#' @export
-summary.event2car_range <- function(object){
+summary.event2car_range <- function(object,...){
   if (!class(object) == "event2car_range"){
     stop("Summary works for event2car_range objects only.")
   }
