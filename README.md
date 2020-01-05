@@ -107,6 +107,9 @@ summary(effect_trump)
 plot(effect_trump)
 ```
 
+![](man/figures/README-example-1.png)<!-- -->
+
+
 ## References
 
 Brown, Stephen J., and Jerold B. Warner. 1980. “Measuring security price
