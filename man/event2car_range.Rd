@@ -87,8 +87,6 @@ return_indx <- tech_returns[,1]
 effect_trump <- event2car_range(returns=returns_firms,regressor=return_indx,
                                 imputation_returns="mean",
                                 event_date=trumpelection,method="mean_adj")
-plot(effect_trump)
-summary(effect_trump)
 }
 \references{
 MacKinlay, A.C. \emph{Event Studies in Economics and Finance}.
