@@ -17,7 +17,7 @@
 #' and \code{regressor} has the length greater than one, the first element of
 #' \code{regressor} will be applied for each security in \code{returns}.
 #'
-#' @param returns an object of \code{data.frame} or \code{zoo} containing rates of returns of securities.
+#' @param returns an object of class \code{zoo} containing rates of returns of securities.
 #' @param regressor an object of the same class as \code{returns} containing regressors.
 #'                  The argument can be omitted, if market model is \code{mean_adj}.
 #' @param event_date an character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
