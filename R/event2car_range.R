@@ -43,10 +43,9 @@
 #'
 #' @return an object of class \code{event2car_range} which contains the
 #' cumulative abnormal returns time series (\code{car_timeseries}),
-#' information on \code{event_date}(s),
-#' information on \code{firm}(s},
+#' information on \code{event_dates},
+#' information on \code{firms},
 #' and information on \code{method}, \code{imputation_returns}, and \code{imputation_regressor}.
-#'
 #'
 #' @references MacKinlay, A.C. \emph{Event Studies in Economics and Finance}.
 #' Journal of Economic Literature, 35(1):13-39, 1997.
@@ -66,12 +65,8 @@
 #' effect_trump <- event2car_range(returns=returns_firms,regressor=return_indx,
 #'                                 imputation_returns="mean",
 #'                                 event_date=trumpelection,method="mean_adj")
-#' plot(effect_trump)
-#' summary(effect_trump)
-
-
 #' @export
-event2car_range <- function(returns = NULL,regressor = NULL,event_date = NULL,
+event2car_range <- function(returns = NULL, regressor = NULL, event_date = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
                       imputation_returns = c("approx","mean","drop","pmm"),
                       imputation_regressor = c("approx","mean"),
@@ -307,114 +302,9 @@ return(out)
 }
 
 
-#' @export
-plot.event2car_range <- function(x = x,
-                           event_color = "red",
-                           event_linetype = "twodash",
-                           event_size = 1,
-                           event_label_size = 3,
-                           line_color = "black",
-                           background_color = "gray",
-                           background_alpha = 0.5,
-                           point_size = 0.2,
-                           point_alpha = 0.1,
-                           axis_text_size = 8,
-                           axis_title_size = 10,
-                           show_method = TRUE){
-  if (!class(x) == "event2car_range") {
-    stop("Plot works for event2car_range objects only.")
-  }
 
-  if (class(x$car_timeseries) == "zoo") {
-    use <- data.frame(x$car_timeseries)
-    use$date <- row.names(use)
-    use <- stats::reshape(use, idvar="date",
-                   varying = 1:(ncol(use)-1),
-                   v.names = "car",
-                   direction="long")
-    row.names(use) <- NULL
-    names(use) <- c("date","firm","car")
-    use$date <- as.Date(use$date)
-  }
-  if (class(x$car_timeseries) == "data.frame") {
-    use <- x$car_timeseries
-    row.names(use) <- NULL
-  }
-  use$firm <- as.character(use$firm)
-  use$event <- ifelse(use$date %in% x$event_date,1,0)
-  use$label <- ifelse(use$event == 1 & use$firm %in% unique(use$firm)[1], as.character(use$date),NA)
 
-    if (x$method == "mean_adj") {
-      method = "Mean-adjusted model"
-    }
-    if (x$method == "mrkt_adj_within") {
-      method = "Market-adjusted model\n(within estimation)"
-    }
-    if (x$method == "mrkt_adj_out") {
-      method = "Market-adjusted model\n(out-of-sample estimation)"
-    }
 
-  p <- ggplot2::ggplot(use,aes(date,car,label = label))+
-    geom_rect(mapping=aes(xmin=min(use$date), xmax=max(use$date), ymin=0, ymax=Inf), color=background_color,
-              alpha=background_alpha,fill=background_color)+
-    geom_point(aes(color=firm),alpha=0.1)+
-    geom_smooth(aes(color=firm),method="loess",alpha=point_alpha,size=point_size)+
-    geom_smooth(color=line_color,method="loess")+
-    geom_vline(xintercept = unique(use$date[use$event==1]),
-               color=event_color,linetype=event_linetype,size=event_size)+
-    geom_label(aes(y=max(use$car)),size=event_label_size,na.rm=TRUE) +
-    scale_color_grey(start = 0.9, end = 0.1) +
-    scale_x_date(labels = date_format("%Y-%m"))+
-    labs(y="Cumulative Abnormal Return",x="",
-         color="",
-         title = method)+
-    theme_minimal()+
-    theme(legend.position = "none",
-          panel.grid = element_blank(),
-          axis.text = element_text(size=axis_text_size),
-          axis.title = element_text(size=axis_title_size))
-
-  p
-}
-
-#' @export
-summary.event2car_range <- function(x=x){
-  if (!class(x) == "event2car_range"){
-    stop("Summary works for event2car_range objects only.")
-  }
-
-  if (class(x$car_timeseries) == "zoo") {
-    use <- data.frame(x$car_timeseries)
-    use$date <- row.names(use)
-    use <- stats::reshape(use, idvar="date",
-                          varying = 1:(ncol(use)-1),
-                          v.names = "car",
-                          direction="long")
-    row.names(use) <- NULL
-    names(use) <- c("date","firm","car")
-    use$date <- as.Date(use$date)
-  }
-  if (class(x$car_timeseries) == "data.frame") {
-    use <- x$car_timeseries
-    row.names(use) <- NULL
-  }
-  use$firm <- as.character(use$firm)
-
-  event_dates_out <- paste(length(x$event_date),"event dates:",paste(as.character(x$event_date),collapse=", "),"\n \n")
-  firms_out <- paste(length(x$firm),"firms:",paste(as.character(x$firm),collapse=", "))
-  use2 <- use[use$date %in% x$event_date,]
-  car_mean_out <- aggregate(use2$car,list(use2$date),FUN=function(y) mean(y,na.rm=TRUE))
-  names(car_mean_out) <- c("event_date","mean_car")
-  car_sd_out <- aggregate(use2$car,list(use2$date),FUN=function(y) sd(y,na.rm=TRUE))
-  names(car_sd_out) <- c("event_date","sd_car")
-  car_summary_out <- merge(car_mean_out,car_sd_out)
-  car_summary_out$ci_lower <- car_summary_out$mean_car - car_summary_out$sd_car * qnorm(0.975) / sqrt(length(use$firm))
-  car_summary_out$ci_upper <- car_summary_out$mean_car + car_summary_out$sd_car * qnorm(0.975) / sqrt(length(use$firm))
-  car_summary_out$sd_car <- NULL
-
-  cat("**** Summary of event2car_range object ****\n\n",event_dates_out,firms_out,"\n\n")
-  return(car_summary_out)
-}
 
 
 
