@@ -25,7 +25,7 @@ event2car_range(
 \item{regressor}{an object of the same class as \code{returns} containing regressors.
 The argument can be omitted, if market model is \code{mean_adj}.}
 
-\item{event_date}{an character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.}
+\item{event_date}{a character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.}
 
 \item{method}{a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
 \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.}

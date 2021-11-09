@@ -7,10 +7,11 @@
 event2car(
   returns = NULL,
   regressor = NULL,
-  event_date = NULL,
+  event_dates = NULL,
   method = c("mean_adj", "mrkt_adj_within", "mrkt_adj_out"),
   imputation_returns = c("approx", "mean", "drop", "pmm"),
   imputation_regressor = c("approx", "mean"),
+  method_nontradingdays = c("add", "skip"),
   car_lag = 1,
   car_lead = 5,
   estimation_period = 150
@@ -22,7 +23,7 @@ event2car(
 \item{regressor}{an object of the same class as \code{returns} containing regressors.
 The argument can be omitted, if market model is \code{mean_adj}.}
 
-\item{event_date}{an character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.}
+\item{event_dates}{a character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.}
 
 \item{method}{a character indicating the method used to calculate abnormal returns and cumulative abnormal returns. Choose among
 \code{mean_adj}, \code{mrkt_adj_out}, and \code{mrkt_adj_within}.}
@@ -36,6 +37,11 @@ The argument can be omitted, if market model is \code{mean_adj}.}
 \item{imputation_regressor}{a character indicating the way of dealing with missing values in regressor data:
 \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
 \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),}
+
+\item{method_nontradingdays}{a character indicating how to treat non-trading days during eventperiod.
+The method \code{add} adds the amount of non-trading days before or as the case may be
+after the eventperiod. The method \code{skip} skips non-trading days from the eventperiod, but does not add additonal days.
+The latter results in unequal eventperiods across \code{event_dates}.}
 
 \item{car_lag}{an object of class \code{intenger} measuring the start of the event window. The default is 1 day prior to the event date.}
 
@@ -78,15 +84,15 @@ return_indx <- tech_returns[,1]
 # mean adjusted model
 event2car(returns=returns_firms,regressor=return_indx,
          imputation_returns="mean",
-         event_date=trumpelection,method="mean_adj")
+         event_dates=trumpelection,method="mean_adj")
 # market adjusted model (out-of sample estimation)
 event2car(returns=returns_firms,regressor=return_indx,
          imputation_returns="mean",imputation_regressor="approx",
-         event_date=trumpelection,method="mrkt_adj_out")
+         event_dates=trumpelection,method="mrkt_adj_out")
 # market adjusted model (within sample estimation)
 event2car(returns=returns_firms,regressor=return_indx,
         imputation_returns="mean",imputation_regressor="approx",
-        event_date=trumpelection,method="mrkt_adj_within")
+        event_dates=trumpelection,method="mrkt_adj_within")
 }
 \references{
 MacKinlay, A.C. \emph{Event Studies in Economics and Finance}.

@@ -4,7 +4,8 @@
 \name{tech_returns}
 \alias{tech_returns}
 \title{Stock returns of 18 US tech companies}
-\format{An objects of class \code{zoo} containing 1045 observations and 19 variables.
+\format{
+An objects of class \code{zoo} containing 1045 observations and 19 variables.
 \describe{
   \item{^NDX}{NASDAQ return  from 2015-11-03 to 2017-11-29.}
   \item{MSFT}{Microsoft's from 2015-11-03 to 2017-11-29.}
@@ -26,7 +27,8 @@
   \item{YELP}{Yelp's from 2015-11-03 to 2017-11-29.}
   \item{TIVO}{TiVo's from 2015-11-03 to 2017-11-29.}
   ...
-}}
+}
+}
 \source{
 \href{https://finance.yahoo.com/}{Yahoo Finance}
 }

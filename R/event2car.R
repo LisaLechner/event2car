@@ -20,7 +20,7 @@
 #' @param returns an object of class \code{zoo} containing rates of returns of securities.
 #' @param regressor an object of the same class as \code{returns} containing regressors.
 #'                  The argument can be omitted, if market model is \code{mean_adj}.
-#' @param event_datess a character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
+#' @param event_dates a character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
 #' @param estimation_period an object of class \code{intenger} stating the number of days
 #'  prior to the event over which the market model parameters are estimated. Default is 150 days.
 #'  Note that the event period itself is not included in the event period to prevent the event from influencing the normal performance model parameter estimates.
@@ -36,7 +36,7 @@
 #'@param method_nontradingdays a character indicating how to treat non-trading days during eventperiod.
 #'The method \code{add} adds the amount of non-trading days before or as the case may be
 #'after the eventperiod. The method \code{skip} skips non-trading days from the eventperiod, but does not add additonal days.
-#'The latter results in unequal eventperiods across \code{event_datess}.
+#'The latter results in unequal eventperiods across \code{event_dates}.
 #' @param imputation_regressor a character indicating the way of dealing with missing values in regressor data:
 #' \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
 #' \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
@@ -77,7 +77,7 @@
 #'         event_dates=trumpelection,method="mrkt_adj_within")
 
 #' @export
-event2car <- function(returns = NULL,regressor = NULL,event_datess = NULL,
+event2car <- function(returns = NULL,regressor = NULL,event_dates = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
                       imputation_returns = c("approx","mean","drop","pmm"),
                       imputation_regressor = c("approx","mean"),
@@ -91,7 +91,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_datess = NULL,
   imputation_returns <- match.arg(imputation_returns)
   imputation_regressor <- match.arg(imputation_regressor)
 
-  event_datess <- as.Date(event_datess)
+  event_dates <- as.Date(event_dates)
 
   # check non-trading days
   if(unique(weekdays(index(returns)))!=unique(weekdays(index(regressor)))){
@@ -231,15 +231,15 @@ event2car <- function(returns = NULL,regressor = NULL,event_datess = NULL,
     eventperiod_end <- event+car_lead
 
     if(method_nontradingdays == "add"){
-    eventday <-  which(c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday") %in% weekdays(event))
-    ifelse(nontradingdays[eventday-1]==FALSE & nontradingdays[eventday-2]==TRUE){
-      eventperiod_start <- eventperiod_start-1}
-    ifelse(nontradingdays[eventday-1]==FALSE & nontradingdays[eventday-2]==FALSE){
-      eventperiod_start <- eventperiod_start-2}
-    ifelse(sum(nontradingdays[(eventday+2):(eventday+6)])<2){
-    eventperiod_end <- eventperiod_end+(5-sum(nontradingdays[(eventday+1):(eventday+5)]))}
-    ifelse(sum(nontradingdays[(eventday+2):(eventday+6)])==2){
-      eventperiod_end <- eventperiod_end+3}
+      eventday <-  which(c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday") %in% weekdays(event))
+      if(nontradingdays[eventday-1]==FALSE & nontradingdays[eventday-2]==TRUE){
+        eventperiod_start <- eventperiod_start-1}
+      if(nontradingdays[eventday-1]==FALSE & nontradingdays[eventday-2]==FALSE){
+        eventperiod_start <- eventperiod_start-2}
+      if(sum(nontradingdays[(eventday+2):(eventday+6)])<2){
+        eventperiod_end <- eventperiod_end+(5-sum(nontradingdays[(eventday+1):(eventday+5)]))}
+      if(sum(nontradingdays[(eventday+2):(eventday+6)])==2){
+        eventperiod_end <- eventperiod_end+3}
     }
 
     ## Mean adjusted model
