@@ -20,7 +20,7 @@
 #' @param returns an object of class \code{zoo} containing rates of returns of securities.
 #' @param regressor an object of the same class as \code{returns} containing regressors.
 #'                  The argument can be omitted, if market model is \code{mean_adj}.
-#' @param event_date an character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
+#' @param event_date a character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
 #' @param estimation_period an object of class \code{intenger} stating the number of days
 #'  prior to the event over which the market model parameters are estimated. Default is 150 days.
 #'  Note that the event period itself is not included in the event period to prevent the event from influencing the normal performance model parameter estimates.
