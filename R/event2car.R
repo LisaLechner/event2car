@@ -20,7 +20,7 @@
 #' @param returns an object of class \code{zoo} containing rates of returns of securities.
 #' @param regressor an object of the same class as \code{returns} containing regressors.
 #'                  The argument can be omitted, if market model is \code{mean_adj}.
-#' @param event_date a character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
+#' @param event_datess a character object or an object of class \code{Date} containing one event date or multiple event dates in the format YYYY-MM-DD.
 #' @param estimation_period an object of class \code{intenger} stating the number of days
 #'  prior to the event over which the market model parameters are estimated. Default is 150 days.
 #'  Note that the event period itself is not included in the event period to prevent the event from influencing the normal performance model parameter estimates.
@@ -33,7 +33,10 @@
 #' \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
 #' \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
 #' \code{pmm}: imputing missing data by dint of predictive mean matching used in the mice package (for further information see `?mice::mice`).
-#'
+#'@param method_nontradingdays a character indicating how to treat non-trading days during eventperiod.
+#'The method \code{add} adds the amount of non-trading days before or as the case may be
+#'after the eventperiod. The method \code{skip} skips non-trading days from the eventperiod, but does not add additonal days.
+#'The latter results in unequal eventperiods across \code{event_datess}.
 #' @param imputation_regressor a character indicating the way of dealing with missing values in regressor data:
 #' \code{mean}: imputing missing data with the mean stock return (for further information see `?zoo::na.aggregate`) ,
 #' \code{approx}: imputing missing data using interpolated values (for further information see `?zoo::na.approx`),
@@ -63,36 +66,44 @@
 #' # mean adjusted model
 #' event2car(returns=returns_firms,regressor=return_indx,
 #'          imputation_returns="mean",
-#'          event_date=trumpelection,method="mean_adj")
+#'          event_dates=trumpelection,method="mean_adj")
 #' # market adjusted model (out-of sample estimation)
 #' event2car(returns=returns_firms,regressor=return_indx,
 #'          imputation_returns="mean",imputation_regressor="approx",
-#'          event_date=trumpelection,method="mrkt_adj_out")
+#'          event_dates=trumpelection,method="mrkt_adj_out")
 #' # market adjusted model (within sample estimation)
 #' event2car(returns=returns_firms,regressor=return_indx,
 #'         imputation_returns="mean",imputation_regressor="approx",
-#'         event_date=trumpelection,method="mrkt_adj_within")
+#'         event_dates=trumpelection,method="mrkt_adj_within")
 
 #' @export
-event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
+event2car <- function(returns = NULL,regressor = NULL,event_datess = NULL,
                       method = c("mean_adj","mrkt_adj_within","mrkt_adj_out"),
                       imputation_returns = c("approx","mean","drop","pmm"),
                       imputation_regressor = c("approx","mean"),
+                      method_nontradingdays = c("add","skip"),
                       car_lag = 1,car_lead = 5,estimation_period = 150){
 
 
   # Sanity Checks
   method <- match.arg(method)
+  method_nontradingdays <- match.arg(method_nontradingdays)
   imputation_returns <- match.arg(imputation_returns)
   imputation_regressor <- match.arg(imputation_regressor)
 
-  event_date <- as.Date(event_date)
+  event_datess <- as.Date(event_datess)
 
+  # check non-trading days
+  if(unique(weekdays(index(returns)))!=unique(weekdays(index(regressor)))){
+    warning("Non-trading days differ in returns and regressor data. Information from the returns data is used to determine event period.")
+  }
+
+  # check dimensions
   if (NROW(returns) < estimation_period+car_lag+car_lead) {
     stop("Length of returns is too short.
                      Either use a longer returns object or shorten the estimation- or event period.")
   }
-  if (min(stats::time(returns))>=min(event_date)-estimation_period-car_lag | max(stats::time(returns))<=max(event_date)-car_lead){
+  if (min(stats::time(returns))>=min(event_dates)-estimation_period-car_lag | max(stats::time(returns))<=max(event_dates)-car_lead){
     stop("Length of returns is too short.
                      Either use a longer returns object or shorten the estimation- or event period.")
   }
@@ -111,7 +122,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       stop("Length of regressor is too short.
                          Either use a longer returns object or shorten the estimation- or event period.")
     }
-    if (min(stats::time(regressor))>=min(event_date)-estimation_period-car_lag | max(stats::time(regressor))<=max(event_date)-car_lead){
+    if (min(stats::time(regressor))>=min(event_dates)-estimation_period-car_lag | max(stats::time(regressor))<=max(event_dates)-car_lead){
       stop("Length of regressor is too short.
                      Either use a longer regressor object or shorten the estimation- or event period.")
     }
@@ -119,6 +130,10 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       warning("regressor and returns have different time ranges.")
     }
   }
+
+  # define non-trading days
+  nontradingdays <-c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday") %in% unique(weekdays(index(returns)))
+  nontradingdays <- c(nontradingdays,nontradingdays) # to allow for a sequence of two weeks
 
 
   # Handling missing data of returns
@@ -211,14 +226,29 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
 
   # Estimate abnormal returns, confidence intervals,
   # and the cumulative abnormal return for each event and each firm
-  temp <- lapply(event_date,function(event){
+  temp <- lapply(event_dates,function(event){
+    eventperiod_start <- event-car_lag
+    eventperiod_end <- event+car_lead
+
+    if(method_nontradingdays == "add"){
+    eventday <-  which(c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday") %in% weekdays(event))
+    ifelse(nontradingdays[eventday-1]==FALSE & nontradingdays[eventday-2]==TRUE){
+      eventperiod_start <- eventperiod_start-1}
+    ifelse(nontradingdays[eventday-1]==FALSE & nontradingdays[eventday-2]==FALSE){
+      eventperiod_start <- eventperiod_start-2}
+    ifelse(sum(nontradingdays[(eventday+2):(eventday+6)])<2){
+    eventperiod_end <- eventperiod_end+(5-sum(nontradingdays[(eventday+1):(eventday+5)]))}
+    ifelse(sum(nontradingdays[(eventday+2):(eventday+6)])==2){
+      eventperiod_end <- eventperiod_end+3}
+    }
+
     ## Mean adjusted model
     if (method == "mean_adj") {
       ### data prep
       #### estimation period data
       y <- window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
       #### event period data
-      y2 <- window(returns, start=(event-car_lag),end=(event+car_lead))
+      y2 <- window(returns, start=eventperiod_start,end=eventperiod_end)
       ### abnormal returns
       if (any(is.null(ncol(y)),ncol(y)==1)) {
         ar <- as.numeric(y2) - mean(as.numeric(y))
@@ -254,9 +284,9 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     ## Market adjusted (within sample) model
     if (method == "mrkt_adj_within") {
       ### data prep
-      y <- window(returns, start=(event-estimation_period-car_lag),end=(event+car_lead))
-      x1 <- window(regressor, start=(event-estimation_period-car_lag),end=(event+car_lead))
-      x2 <- stats::time(y) %in% seq(as.Date(event-car_lag), as.Date(event+car_lead), "days")
+      y <- window(returns, start=(event-estimation_period-car_lag),end=eventperiod_end)
+      x1 <- window(regressor, start=(event-estimation_period-car_lag),end=eventperiod_end)
+      x2 <- stats::time(y) %in% seq(as.Date(eventperiod_start),as.Date(eventperiod_end), "days")
       ### regression inkl. event period
       z <- stats::lm(y~x1+x2)
       ### output
@@ -287,8 +317,8 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
       y <- stats::window(returns, start=(event-estimation_period-car_lag),end=(event-car_lag))
       x1 <- stats::window(regressor, start=(event-estimation_period-car_lag),end=(event-car_lag))
       #### event period data
-      y2 <- stats::window(returns, start=(event-car_lag),end=(event+car_lead))
-      x12 <- stats::window(regressor, start=(event-car_lag),end=(event+car_lead))
+      y2 <- stats::window(returns, start=eventperiod_start,end=eventperiod_end)
+      x12 <- stats::window(regressor, start=eventperiod_start,end=eventperiod_end)
       ### regression
       z <- stats::lm(y~x1)
       ### prediction or abnormal returns
@@ -336,7 +366,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_date = NULL,
     }
     return(out)
   })
-  names(temp) <- event_date
+  names(temp) <- event_dates
   return(temp)
 }
 
