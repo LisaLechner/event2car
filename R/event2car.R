@@ -94,10 +94,11 @@ event2car <- function(returns = NULL,regressor = NULL,event_dates = NULL,
   event_dates <- as.Date(event_dates)
 
   # check non-trading days
+  if(method_nontradingdays=="add"){
   if(exists(regressor)){
   if(unique(weekdays(index(returns)))!=unique(weekdays(index(regressor)))){
     warning("Non-trading days differ in returns and regressor data. Information from the returns data is used to determine event period.")
-  }}
+  }}}
 
   # check dimensions
   if (NROW(returns) < estimation_period+car_lag+car_lead) {
@@ -133,9 +134,10 @@ event2car <- function(returns = NULL,regressor = NULL,event_dates = NULL,
   }
 
   # define non-trading days
+  if(method_nontradingdays=="add"){
   nontradingdays <-c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday") %in% unique(weekdays(index(returns)))
   nontradingdays <- c(nontradingdays,nontradingdays) # to allow for a sequence of two weeks
-
+  }
 
   # Handling missing data of returns
   ## mean imputation_returns
