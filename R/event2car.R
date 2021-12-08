@@ -253,7 +253,7 @@ event2car <- function(returns = NULL,regressor = NULL,event_dates = NULL,
       #### event period data
       y2 <- window(returns, start=eventperiod_start,end=eventperiod_end)
       ### abnormal returns
-      if (any(is.null(ncol(y)),ncol(y)==1)) {
+      if (any(is.null(ncol(y)),ncol(y)==1,nrow(y),nrow(y2))) {
         ar <- as.numeric(y2) - mean(as.numeric(y))
         se <- stats::qnorm(0.975)*stats::sd(ar)/sqrt(length(ar))
         m <- mean(ar)
