@@ -215,11 +215,22 @@ temp <- lapply(range,function(event){
     ### abnormal returns
     if (any(is.null(ncol(y)),ncol(y)==1)) {
       car <- sum(as.numeric(y2) - mean(as.numeric(y)))
+      car_lb <- car - sd(as.numeric(y2) - mean(as.numeric(y)))/sqrt(length(y2))
+      car_ub <- car + sd(as.numeric(y2) - mean(as.numeric(y)))/sqrt(length(y2))
     } else {
     ar <- sapply(seq_len(ncol(y)),function(i){
       as.numeric(y2[,i]) - mean(as.numeric(y[,i]))})
 
     car <- colSums(ar)
+
+    car_lb <- sapply(seq_len(ncol(y)),function(i){
+      car[i] - sd(as.numeric(y2[,i]) - mean(as.numeric(y[,i])))/sqrt(length(y2[,i])) })
+
+    car_ub <- sapply(seq_len(ncol(y)),function(i){
+      car[i] + sd(as.numeric(y2[,i]) - mean(as.numeric(y[,i])))/sqrt(length(y2[,i])) })
+
+
+
     }
   }
   ## Market adjusted (within sample) model
@@ -233,8 +244,12 @@ temp <- lapply(range,function(event){
     ### output
     if (any(is.null(ncol(y)),ncol(y)==1)) {
       car <- stats::coef(z)[[3]]* sum(ifelse(x2==TRUE,1,0))
+      car_lb <- NA # need to implement this
+      car_ub <- NA # need to implement this
     } else {
       car <- stats::coef(z)[3,] * sum(ifelse(x2==TRUE,1,0))
+      car_lb <- NA # need to implement this
+      car_ub <- NA # need to implement this
     }
   }
   ## Market adjusted (within sample) model
@@ -257,25 +272,29 @@ temp <- lapply(range,function(event){
       })
 
       car <- sum(ar)
+      car_lb <- NA # need to implement this
+      car_ub <- NA # need to implement this
 
     } else {
       ar <- sapply(seq_along(x12),function(i){
         y2[i, ] - (stats::coef(z)[1, ] + stats::coef(z)[2, ] * x12[[i]])
       })
     car <- rowSums(ar)
+    car_lb <- NA # need to implement this
+    car_ub <- NA # need to implement this
     }
   }
+ car <- data.frame(firm=names(y),car=car,car_lb=car_lb,car_ub=car_ub)
 
-  names(car) <- names(y)
 
-  if (is.null(names(car))) {
-    names(car) <- seq_len(length(car))
+  if (is.null(names(y))) {
+    car <- data.frame(firm=seq_len(length(y)),car=car,car_lb=car_lb,car_ub=car_ub)
   }
   return(car)
 })
 
-temp <- unlist(temp)
-temp <- data.frame(firm=names(temp),car=temp)
+#temp <- unlist(temp)
+#temp <- data.frame(firm=names(temp),car=temp)
 temp <- temp[order(temp$firm),]
 if (nrow(temp) %% length(range) ==0) {
   temp$date <- rep(range,nrow(temp)/length(range))
